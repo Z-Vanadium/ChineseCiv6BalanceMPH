@@ -850,8 +850,8 @@ function RefreshStatus()
 				end
 				if player.Status == 1 then
 					-- We haven't received an answer most likely hasn't a fully loaded MPH
-					    local msg_CCBError_MPH_nopreloaded = "[COLOR_Civ6Red]错误:"..player.Name.." - MPH未预加载，无法检查Mod版本"
-					    local msg_CCBError_MPH_gopreloaded = "[COLOR_Civ6Red]没有完整加载MPH [NEWLINE]请在Steam创意工坊订阅CCB MPH [NEWLINE]确保在 额外内容 - 模组 中选择了MPH [NEWLINE]在加入此游戏之前，请务必重新启动游戏。[ENDCOLOR]"
+					    local msg_CCBError_MPH_nopreloaded = "[COLOR_Civ6Red]错误:"..player.Name.." - CCB助手未预加载，无法检查Mod版本"
+					    local msg_CCBError_MPH_gopreloaded = "[COLOR_Civ6Red]没有完整加载CCB助手 [NEWLINE]请在Steam创意工坊订阅CCB助手 [NEWLINE]确保在 额外内容 - 模组 中选择了CCB助手 [NEWLINE]在加入此游戏之前，请务必重新启动游戏。[ENDCOLOR]"
 						Network.SendChat( msg_CCBError_MPH_nopreloaded ,-2,player.ID)
 						Network.SendChat( msg_CCBError_MPH_gopreloaded ,-2,player.ID)
 
@@ -861,7 +861,7 @@ function RefreshStatus()
 				if player.Status == 2 then
 					-- We haven't received an answer most likely hasn't a fully loaded MPH
 						if tostring(player.Version) ~= tostring(g_version) then
-							local msg_CCBError_MPH_Version = "[COLOR_Civ6Red]MPH Host version: "..tostring(g_version).." Your version: "..tostring(player.Version)
+							local msg_CCBError_MPH_Version = "[COLOR_Civ6Red]主机CCB助手版本: "..tostring(g_version).." Your version: "..tostring(player.Version)
 							Network.SendChat( msg_CCBError_MPH_Version ,-2,player.ID)
 							player.Status = 66
 						end
@@ -871,12 +871,12 @@ function RefreshStatus()
 							player.Status = 66
 						end
 						if b_bbg_game == true and tostring(player.bbg_v) ~= tostring(GetLocalModVersion(s_bbg_id)) then
-							local msg_CCBError_BBG = "[COLOR_Civ6Red]主机BBG版本: "..tostring(GetLocalModVersion(s_bbg_id)).." 你的版本: "..tostring(player.bbg_v)
+							local msg_CCBError_BBG = "[COLOR_Civ6Red]主机CCB版本: "..tostring(GetLocalModVersion(s_bbg_id)).." 你的版本: "..tostring(player.bbg_v)
 							Network.SendChat( msg_CCBError_BBG , -2, player.ID)
 							player.Status = 66
 						end
 						if b_bbge_game == true and tostring(player.bbge_v) ~= tostring(GetLocalModVersion(s_bbge_id)) then
-							local msg_CCBError_BBGE = "[COLOR_Civ6Red]主机BBGE版本: "..tostring(GetLocalModVersion(s_bbge_id)).." 你的版本: "..tostring(player.bbge_v)
+							local msg_CCBError_BBGE = "[COLOR_Civ6Red]主机CCB拓展版本: "..tostring(GetLocalModVersion(s_bbge_id)).." 你的版本: "..tostring(player.bbge_v)
 							Network.SendChat( msg_CCBError_BBGE , -2, player.ID)
 							player.Status = 66
 						end
