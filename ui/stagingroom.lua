@@ -888,7 +888,6 @@ function RefreshStatus()
 							local msg_CCB_Version_Match = "[COLOR_Civ6Green]"..player.Name.." - 版本匹配 ."
 							player.Status = 3
 							Network.SendChat( msg_CCB_Version_Match ,-2,player.ID)
-							Network.SendChat( s_bbge_id ,-2,player.ID)
 						end
 				end				
 				if player.Status == 0 then
