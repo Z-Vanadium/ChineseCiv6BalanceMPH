@@ -1619,14 +1619,16 @@ function Refresh()
 		end			
 		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10" then
 			GameConfiguration.SetValue("MOD_BBS_ID",true)
-		end		
-		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05" or curMod.Id == "cb84074d-5007-4207-b662-c35a5f7be230" then
+		end
+		-- ccb基础modid, ccb基础beta modid, bbg modid
+		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00" or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05" or curMod.Id == "cb84074d-5007-4207-b662-c35a5f7be230" then
 			GameConfiguration.SetValue("MOD_BBG_ID",true)
 		end				
 		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20" then
 			GameConfiguration.SetValue("MOD_MPH_ID",true)
 		end
-		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" then
+		-- ccb拓展modid, ccb拓展beta modid
+		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e34" then
 			GameConfiguration.SetValue("MOD_BBGE_ID",true)
 		end															 	 
 	end	
@@ -7179,7 +7181,8 @@ function BuildAdditionalContent()
             s_bbs_id = curMod.Id
         end
         
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05"  --BBG now CCB Base on
+        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00" --CCB Base
+			or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05"  --CCB Base Beta
             or curMod.Id == "cb84075d-5007-4207-b662-c35a5f7be250" --BBG beta
             or curMod.Id == "cb84075d-5007-4207-b662-c35a5f7be254" then --BBG low version?
             local version = GetLocalModVersion(curMod.Id)
@@ -7191,7 +7194,8 @@ function BuildAdditionalContent()
             b_bbg_game = true
             s_bbg_id = curMod.Id
         end
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" then --BBM now CCBmap 1.0 on
+        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" 			--CCB Expanded
+			or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e34" then --CCB Expanded Beta
             local version = GetLocalModVersion(curMod.Id)
             if version then
                 modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
