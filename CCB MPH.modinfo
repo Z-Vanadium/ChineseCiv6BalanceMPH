@@ -455,6 +455,12 @@
             </Properties>
             <File>ui/Replacements/unitflagmanager.lua</File>
         </ImportFiles>
+        <AddUserInterfaces id="AutoUpdate">
+			<Properties>
+				<Context>InGame</Context>
+			</Properties>
+			<File>ui/AutoUpdate.xml</File>
+		</AddUserInterfaces>
 
     </InGameActions>
     <Files>
@@ -496,6 +502,8 @@
         <File>ui/stagingroom.lua</File>
         <File>ui/stagingroom.xml</File>
         <!-- InGame UI -->
+        <File>ui/AutoUpdate.lua</File>
+		<File>ui/AutoUpdate.xml</File>
         <File>ui/ingame.xml</File>
         <File>ui/ingame.lua</File>
         <File>ui/Replacements/chatpanel_MPH.lua</File>
