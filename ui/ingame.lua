@@ -376,6 +376,9 @@ function GetLocalModVersion(id)
 end
 
 function OnPlayerVictory(player)
+	if Game.GetCurrentGameTurn() <= 50 then
+		return
+	end
 	local domain_name = '127.0.0.1:5050'
 	local game_data_str = ""
 	local game_data = {}
