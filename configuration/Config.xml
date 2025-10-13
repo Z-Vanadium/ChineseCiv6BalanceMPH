@@ -234,6 +234,7 @@
 <!--  Vote Draft Can Only Be Random -->
 		<Row SourceGroup="Game" SourceId="CPL_BAN_FORMAT" SourceValue="4" TargetGroup="Game" TargetId="DRAFT_SLOT_ORDER" TargetValue="0" />
 		<!--  CCB STD Defaulting  -->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="CPL_SMARTTIMER" TargetValue="0" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="MPH_OFFICIAL_GAME" TargetValue="1" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="PRIVATE_GAME" TargetValue="1" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="NO_DUPLICATE_LEADERS" TargetValue="0" Hash="0" />
