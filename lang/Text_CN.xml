@@ -2,6 +2,14 @@
 <GameData>
     <LocalizedText>
 
+        <!-- CCB -->
+        <Replace Tag="MPH_PRESET_CCB_STD_NAME" language="zh_Hans_CN">
+            <Text>CCB 预设</Text>
+        </Replace>
+        <Replace Tag="MPH_PRESET_CCB_STD_DESC" language="zh_Hans_CN">
+            <Text>CCB 国人常用设置。</Text>
+        </Replace>
+
         <!-- New entries -->
         <Replace Tag="LOC_MAP_RICH_HIGHTLANDS_NANME" language="zh_Hans_CN">
             <Text>丰富高地</Text>

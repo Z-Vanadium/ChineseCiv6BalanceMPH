@@ -1,5 +1,10 @@
 <GameInfo>
 	<ConfigurationUpdates>
+		<!--  CCB STD Defaulting  -->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="BARBS_SETTING" TargetValue="-1" Hash="0" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="BBGVictorySpeedSlider" TargetValue="5" Hash="0" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="BBCC_SETTING" TargetValue="1" Hash="0" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="BBCC_SETTING_YIELD" TargetValue="0" Hash="0" />
 		<!--  CWC Defaulting  -->
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="1" TargetGroup="Game" TargetId="BARBS_SETTING" TargetValue="-1" Hash="0" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="1" TargetGroup="Game" TargetId="BBGVictorySpeedSlider" TargetValue="5" Hash="0" />
