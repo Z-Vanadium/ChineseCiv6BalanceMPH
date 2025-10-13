@@ -234,7 +234,6 @@
 <!--  Vote Draft Can Only Be Random -->
 		<Row SourceGroup="Game" SourceId="CPL_BAN_FORMAT" SourceValue="4" TargetGroup="Game" TargetId="DRAFT_SLOT_ORDER" TargetValue="0" />
 		<!--  CCB STD Defaulting  -->
-		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="CPL_SMARTTIMER" TargetValue="0" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="MPH_OFFICIAL_GAME" TargetValue="1" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="PRIVATE_GAME" TargetValue="1" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="NO_DUPLICATE_LEADERS" TargetValue="0" Hash="0" />
@@ -244,7 +243,7 @@
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Map" TargetId="world_age" TargetValue="1" Hash="0"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Map" TargetId="MAP_SIZE" TargetValue="MAPSIZE_STANDARD" Hash="1"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="GAME_NO_BARBARIANS" TargetValue="1" Hash="0"/>
-		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="CPL_SMARTTIMER" TargetValue="-1" Hash="0"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="CPL_SMARTTIMER" TargetValue="0" Hash="0"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="NO_TRADING_CITIES" TargetValue="1" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Map" TargetId="resources" TargetValue="2"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Map" TargetId="BBSStratRes" TargetValue="3"/>
