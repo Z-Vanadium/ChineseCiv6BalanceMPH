@@ -1468,8 +1468,6 @@ function GetLocalModVersion(id)
 	end
 	if handle ~= -1 then
 		local version = Modding.GetModProperty(handle, "Version");
-		version = (version == nil and Modding.GetModProperty(handle, "version"));
-		version = (version == nil and Modding.GetModProperty(handle, "VERSION"));
 		print("id",id,version)
 		return version
 		else
