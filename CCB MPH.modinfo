@@ -147,6 +147,17 @@
 
     </FrontEndActions>
     <InGameActions>
+        <!-- 大将军显示时代 -->
+		<ReplaceUIScript id="GreatGeneralEraReminder_Replace">
+			<Properties>
+				<LoadOrder>10001</LoadOrder>
+				<LuaContext>UnitFlagManager</LuaContext>
+				<LuaReplace>BER/UnitFlagManager_GreatGeneralEraReminder.lua</LuaReplace>
+			</Properties>
+		</ReplaceUIScript>
+		<ImportFiles id="GreatGeneralEraReminder_Import">
+			<File>BER/UnitFlagManager_GreatGeneralEraReminder.lua</File>
+		</ImportFiles>
 
         <AddGameplayScripts id="CPL_Helper">
             <File>data/MP_helper.lua</File>
@@ -457,6 +468,7 @@
 
     </InGameActions>
     <Files>
+		<File>BER/UnitFlagManager_GreatGeneralEraReminder.lua</File>
         <File>data/MP_helper.lua</File>
         <File>data/Victories.xml</File>
         <File>lang/Text_EN.xml</File>
