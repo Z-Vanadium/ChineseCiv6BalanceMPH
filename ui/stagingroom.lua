@@ -1666,7 +1666,11 @@ function Refresh()
 	end
 	
 	Controls.PhaseLabel_Version:SetHide(false) 
-	Controls.PhaseLabel_Version:SetText("v"..g_version)
+	if g_version ~= nil then
+		Controls.PhaseLabel_Version:SetText("v"..g_version)
+	else
+		print("CCB MPH error, g_version is nil at line 1659 in file statgingroom.lua")
+	end
 
 	-- Civ+ Player mod bug
 	if isCivPlayerName == true then
