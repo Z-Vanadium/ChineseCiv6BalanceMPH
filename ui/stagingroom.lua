@@ -570,6 +570,8 @@ function GetLocalModVersion(id)
 	end
 	if handle ~= -1 then
 		local version = Modding.GetModProperty(handle, "Version");
+		version = (version == nil and Modding.GetModProperty(handle, "version"))
+		version = (version == nil and Modding.GetModProperty(handle, "VERSION"))
 		return version
 		else
 		return nil
@@ -7179,9 +7181,9 @@ function BuildAdditionalContent()
             s_bbs_id = curMod.Id
         end
         
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05"  --BBG now CCB Base on
-            or curMod.Id == "cb84075d-5007-4207-b662-c35a5f7be250" --BBG beta
-            or curMod.Id == "cb84075d-5007-4207-b662-c35a5f7be254" then --BBG low version?
+        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00"  --BBG now CCB Base on
+            or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05" --BBG now CCB BETA
+            or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e09" then --BBG low version? now CCB WIP
             local version = GetLocalModVersion(curMod.Id)
             if version then
                 modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
