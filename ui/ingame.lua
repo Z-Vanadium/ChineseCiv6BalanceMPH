@@ -344,6 +344,117 @@ function OnShutdown()
 	UIManager:ClearPopupChangeHandler();
 end
 
+-- ChineseCivTracker
+function GetLocalModVersion(id)
+	if id == nil then
+		return nil
+	end
+	
+	local mods = Modding.GetInstalledMods();
+	if(mods == nil or #mods == 0) then
+		print("No mods locally installed!")
+		return nil
+	end
+	
+	local handle = -1
+	for i,mod in ipairs(mods) do
+		if mod.Id == id then
+			handle = mod.Handle
+			break
+		end
+	end
+	if handle ~= -1 then
+		local version = Modding.GetModProperty(handle, "Version");
+		version = (version == nil and Modding.GetModProperty(handle, "version"))
+		version = (version == nil and Modding.GetModProperty(handle, "VERSION"))
+		return version
+		else
+		return nil
+	end
+	
+	
+end
+
+function OnPlayerVictory(player)
+	local domain_name = '127.0.0.1:5050'
+	local game_data_str = ""
+	local game_data = {}
+	local mod_version = {}
+	local player_leader_civ = {}
+	local winner_team = 0
+	local player_num = 0	-- not include AI or spectator
+
+	game_data["timestamp"] = os.time()
+
+	mod_version["ccb_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00")
+	mod_version["ccb_map_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10")
+	mod_version["ccb_mph_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20")
+	mod_version["ccb_exp_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e34")
+
+	game_data["mod_version"] = mod_version
+	game_data["map_type"] = MapConfiguration:GetScript()
+	game_data["total_turns"] = Game.GetCurrentGameTurn()
+
+	for _, _player in pairs(PlayerManager:GetWasEverAliveMajors()) do
+		if _player:GetID() == player:GetID() then
+			winner_team = _player:GetTeam()
+		end
+		if (_player:IsHuman() and PlayerConfigurations[_player:GetID()]:GetLeaderTypeName() ~= "LEADER_SPECTATOR") then
+			player_num = player_num + 1
+		end
+		local steam_id = PlayerConfigurations[_player:GetID()]:GetNetworkIdentifer()
+
+		local player_info = {}
+		player_info["team"] = _player:GetTeam()
+		player_info["leader_type"] = PlayerConfigurations[_player:GetID()]:GetLeaderTypeName()
+		player_info["civilization_type"] = PlayerConfigurations[_player:GetID()]:GetCivilizationTypeName()
+
+		player_leader_civ[tostring(steam_id)] = player_info
+	end
+
+	game_data["player_leader_civ"] = player_leader_civ
+	game_data["player_num"] = player_num
+	game_data["winner_team"] = winner_team
+
+	game_data_str = TableToJson(game_data)
+
+	local raw_url = domain_name .. "/api/send?data=" .. game_data_str
+	url = EncodeUrl(raw_url)
+	Steam.ActivateGameOverlayToUrl(url)
+end
+
+function TableToJson(data)
+    if type(data) == "table" then
+        local items = {}
+        for k, v in pairs(data) do
+            if type(k) == "number" then
+                table.insert(items, TableToJson(v))
+            else
+                table.insert(items, '"' .. tostring(k) .. '":' .. TableToJson(v))
+            end
+        end
+        if #items > 0 then
+            return "{" .. table.concat(items, ",") .. "}"
+        else
+            return "{}"
+        end
+    elseif type(data) == "string" then
+        return '"' .. data .. '"'
+    else
+        return tostring(data)
+    end
+end
+
+function EncodeUrl(str)
+    if str then
+        str = string.gsub(str, "([^%w%.%- ])", function(c)
+            return string.format("%%%02X", string.byte(c))
+        end)
+        str = string.gsub(str, " ", "+")
+    end
+    return str
+end
+
 -- ===========================================================================
 --	Cannot use LateInitialize patterns as this context is attached via C++
 -- ===========================================================================
@@ -375,6 +486,8 @@ function Initialize()
 	Events.LocalPlayerTurnEnd.Add( OnTurnEnd );	
 	Events.SystemUpdateUI.Add( OnUpdateUI );
 	Events.UIIdle.Add( OnUIIdle );
+
+	Events.PlayerVictory( OnPlayerVictory );
 	
 	
 	-- NOTE: Using UI open/closed pairs in the case of end game; where
