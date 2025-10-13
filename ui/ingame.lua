@@ -487,7 +487,7 @@ function Initialize()
 	Events.SystemUpdateUI.Add( OnUpdateUI );
 	Events.UIIdle.Add( OnUIIdle );
 
-	Events.PlayerVictory( OnPlayerVictory );
+	Events.PlayerVictory.Add( OnPlayerVictory );
 	
 	
 	-- NOTE: Using UI open/closed pairs in the case of end game; where
