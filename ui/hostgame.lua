@@ -872,6 +872,15 @@ function Premier_League_Natural_Wonders()
 	GameConfiguration.SetValue("EXCLUDE_NATURAL_WONDERS",default)
 end
 
+function CCB_Natural_Wonders()
+	local default = {}
+	default = {
+		'FEATURE_BERMUDA_TRIANGLE',
+		'FEATURE_EYJAFJALLAJOKULL'
+	}
+	GameConfiguration.SetValue("EXCLUDE_NATURAL_WONDERS",default)
+end
+
 function CWC_Natural_Wonders()
 	local default = {}
 	default = {
@@ -1010,6 +1019,11 @@ function CheckPreset()
 		if currentPreset == 0 then
 			print("Applied Default Settings")
 			Default_Natural_Wonders()
+		end
+		-- CCB STD
+		if currentPreset == 12 then
+			print("Applied CCB STD Settings")
+			CCB_Natural_Wonders()
 		end
 		-- CWC
 		if currentPreset == 1 then

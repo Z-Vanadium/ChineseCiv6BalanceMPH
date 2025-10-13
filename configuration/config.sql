@@ -1,3 +1,5 @@
+-- CCB 2025/10/13: This files is thrown, algo is in file hostgame.lua
+
 --UPDATE Parameters SET Hash = 1 WHERE ConfigurationId IN ('EXCLUDE_NATURAL_WONDERS', 'EXCLUDE_CITY_STATES');
 
 CREATE TABLE Excluded_CS_Ref(
