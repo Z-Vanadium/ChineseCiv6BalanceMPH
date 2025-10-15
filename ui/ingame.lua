@@ -405,10 +405,11 @@ function OnTeamVictory(team, victory, eventID)
 		print("CCT: game turn less than 49, ignore")
 		return
 	end
+	local domain_name
 	if is_debug then
-		local domain_name = '127.0.0.1:5050'
+		domain_name = '127.0.0.1:5050'
 	else
-		local domain_name = '60.205.246.25:80'
+		domain_name = '60.205.246.25:80'
 	end
 	local game_data_str = ""
 	local game_data = {}
