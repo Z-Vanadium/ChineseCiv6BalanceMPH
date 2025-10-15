@@ -12,6 +12,8 @@ include( "PopupDialog" );
 include( "Civ6Common" );
 include( "TeamSupport" );
 
+g_mod_version = {}
+
 local g_version = "13X"
 print("Staging Room For MPH ",g_version)					
 ----------------------------------------------------------------  
@@ -569,9 +571,9 @@ function GetLocalModVersion(id)
 		end
 	end
 	if handle ~= -1 then
-		local version = Modding.GetModProperty(handle, "Version");
-		version = (version == nil and Modding.GetModProperty(handle, "version"))
-		version = (version == nil and Modding.GetModProperty(handle, "VERSION"))
+		local version = Modding.GetModProperty(handle, "version");
+		-- version = (version == nil and Modding.GetModProperty(handle, "version"))
+		-- version = (version == nil and Modding.GetModProperty(handle, "VERSION"))
 		return version
 		else
 		return nil
@@ -7163,6 +7165,7 @@ function BuildAdditionalContent()
         end
         if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20" then --MPH now CCBMPH 1.0 on
             local version = GetLocalModVersion(curMod.Id)
+			g_mod_version["ccb_mph_version"] = version or "unknown"
             if version then
                 modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
             else
@@ -7176,6 +7179,7 @@ function BuildAdditionalContent()
         end
         if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10" then --BBM now CCBmap 1.0 on
             local version = GetLocalModVersion(curMod.Id)
+			g_mod_version["ccb_map_version"] = version or "unknown"
             if version then
                 modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
             else
@@ -7189,6 +7193,7 @@ function BuildAdditionalContent()
             or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05" --BBG now CCB BETA
             or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e09" then --BBG low version? now CCB WIP
             local version = GetLocalModVersion(curMod.Id)
+			g_mod_version["ccb_version"] = version or "unknown"
             if version then
                 modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
             else
@@ -7199,6 +7204,7 @@ function BuildAdditionalContent()
         end
         if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" then --BBM now CCBmap 1.0 on
             local version = GetLocalModVersion(curMod.Id)
+			g_mod_version["ccb_exp_version"] = version or "unknown"
             if version then
                 modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
             else

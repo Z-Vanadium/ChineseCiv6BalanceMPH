@@ -6,6 +6,7 @@
 include( "LocalPlayerActionSupport" );
 include( "InputSupport" );
 print("MPH InGame")
+include( "stagingroom" ); -- for GetLocalModVersion
 
 
 -- ===========================================================================
@@ -345,85 +346,131 @@ function OnShutdown()
 end
 
 -- ChineseCivTracker
-function GetLocalModVersion(id)
-	if id == nil then
-		return nil
+g_player_data_table = {}
+-- g_player_data_table["science"] = {}
+-- g_player_data_table["culture"] = {}
+-- g_player_data_table["gold"] = {}
+-- g_player_data_table["faith"] = {}
+-- to check essential time points
+function OnGameTurnStarted()
+	local current_turn: number = Game.GetCurrentGameTurn()
+	print("OnGameTurnStarted", current_turn)
+
+	local is_debug = true
+	if (is_debug) then
+		TrackAllPlayerDataOnTurn(current_turn)
 	end
-	
-	local mods = Modding.GetInstalledMods();
-	if(mods == nil or #mods == 0) then
-		print("No mods locally installed!")
-		return nil
-	end
-	
-	local handle = -1
-	for i,mod in ipairs(mods) do
-		if mod.Id == id then
-			handle = mod.Handle
-			break
-		end
-	end
-	if handle ~= -1 then
-		local version = Modding.GetModProperty(handle, "Version");
-		version = (version == nil and Modding.GetModProperty(handle, "version"))
-		version = (version == nil and Modding.GetModProperty(handle, "VERSION"))
-		return version
-		else
-		return nil
-	end
-	
-	
 end
 
-function OnPlayerVictory(player)
-	if Game.GetCurrentGameTurn() <= 50 then
+function TrackAllPlayerDataOnTurn( turn: number )
+	local turn_str: string = tostring(turn)
+	if turn_str ~= nil then
+		g_player_data_table[turn_str] = {}
+		print("TrackAllPlayerDataOnTurn", turn)
+
+		for _, _player in pairs(PlayerManager:GetWasEverAliveMajors()) do
+			local id: number = _player:GetID()
+			local id_str: string = tostring(id)
+			local player_data = {}
+			-- local dataSetIndex = 0
+			local initialTurn = GameConfiguration.GetStartTurn()
+			local finalTurn = Game.GetCurrentGameTurn()
+			local count = GameSummary.GetDataSetCount()
+
+			for i = 0, count - 1, 1 do
+				local name = GameSummary.GetDataSetName(i);
+				local gdata = GameSummary.CoalesceDataSet(i, initialTurn, finalTurn)
+				if name == 'REPLAYDATASET_TOTALGOLD' then
+					player_data["total_gold"] = gdata[id][#gdata[id]]
+				end
+			end
+			g_player_data_table[turn_str][id_str] = player_data
+		end
+	end
+end
+
+-- to send game data to server when game ends
+function OnTeamVictory(team, victory, eventID)
+	local localPlayer :number = Game.GetLocalPlayer();
+	local is_debug = true
+	print("CCT: message sent start")
+	if is_debug == false and Game.GetCurrentGameTurn() <= 50 then
+		print("CCT: game turn less than 50, ignore")
 		return
 	end
 	local domain_name = '127.0.0.1:5050'
 	local game_data_str = ""
 	local game_data = {}
-	local mod_version = {}
+	local mod_version = g_mod_version or {}
 	local player_leader_civ = {}
-	local winner_team = 0
+	local winner_team = team
+	local victory_type = victory
 	local player_num = 0	-- not include AI or spectator
+	local map_seed = MapConfiguration.GetValue("RANDOM_SEED")
+	local game_seed = GameConfiguration.GetValue("GAME_SYNC_RANDOM_SEED")
 
 	game_data["timestamp"] = os.time()
+	game_data["victory_type"] = victory_type
+	game_data["map_seed"] = map_seed
+	game_data["game_seed"] = game_seed
 
-	mod_version["ccb_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00")
-	mod_version["ccb_map_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10")
-	mod_version["ccb_mph_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20")
-	mod_version["ccb_exp_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e34")
+	-- print("CCT: game turn more than 50, start send message to domain: " .. domain_name .. ", time: " .. tostring(game_data["timestamp"]))
+
+	-- mod_version["ccb_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00")
+	-- mod_version["ccb_map_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10")
+	-- mod_version["ccb_mph_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20")
+	-- mod_version["ccb_exp_version"] = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e34")
+
+	print("CCT: ccb_version: " .. tostring(mod_version["ccb_version"]) .. ", ccb_map_version: " .. tostring(mod_version["ccb_map_version"]) .. ", ccb_mph_version: " .. tostring(mod_version["ccb_mph_version"]) .. ", ccb_exp_version: " .. tostring(mod_version["ccb_exp_version"]))
 
 	game_data["mod_version"] = mod_version
 	game_data["map_type"] = MapConfiguration:GetScript()
 	game_data["total_turns"] = Game.GetCurrentGameTurn()
 
 	for _, _player in pairs(PlayerManager:GetWasEverAliveMajors()) do
-		if _player:GetID() == player:GetID() then
-			winner_team = _player:GetTeam()
-		end
+		-- if is_debug == false and _player:GetID() == player:GetID() then
+		-- 	winner_team = _player:GetTeam()
+		-- else
+		-- 	winner_team = -1
+		-- end
 		if (_player:IsHuman() and PlayerConfigurations[_player:GetID()]:GetLeaderTypeName() ~= "LEADER_SPECTATOR") then
 			player_num = player_num + 1
 		end
 		local steam_id = PlayerConfigurations[_player:GetID()]:GetNetworkIdentifer()
+		local id  _player:GetID()
 
 		local player_info = {}
+		player_info["steam_id"] = steam_id
 		player_info["team"] = _player:GetTeam()
 		player_info["leader_type"] = PlayerConfigurations[_player:GetID()]:GetLeaderTypeName()
 		player_info["civilization_type"] = PlayerConfigurations[_player:GetID()]:GetCivilizationTypeName()
 
-		player_leader_civ[tostring(steam_id)] = player_info
+		player_leader_civ[tostring(id)] = player_info
 	end
 
 	game_data["player_leader_civ"] = player_leader_civ
 	game_data["player_num"] = player_num
 	game_data["winner_team"] = winner_team
 
+	-- following code will cause crash
+	-- game_data["game_summary"] = GameSummary.CoalesceDataSet(0, GameConfiguration.GetStartTurn(), Game.GetCurrentGameTurn())
+	-- game_data["game_summary"] = g_player_data_table
+
 	game_data_str = TableToJson(game_data)
 
 	local raw_url = domain_name .. "/api/send?data=" .. game_data_str
-	url = EncodeUrl(raw_url)
-	Steam.ActivateGameOverlayToUrl(url)
+	-- print("CCT: raw url: " .. raw_url)
+	local encoded_chunks = EncodeUrlChunked(game_data_str)
+
+	for i = 1, #encoded_chunks, 1 do
+		if domain_name == nil or encoded_chunks[i] == nil or game_seed == nil or localPlayer == nil then
+			print("CCT: domain_name or encoded_chunks or game_seed or localPlayer is nil, ignore")
+		else
+			local api_url = domain_name .. "/api/send?data=" .. encoded_chunks[i] .. "&game_seed=" .. tostring(game_seed) .. "&part=" .. tostring(i) .. "&total=" .. tostring(#encoded_chunks) .. "&player_id=" .. tostring(localPlayer)
+			print("CCT: open url: " .. api_url)
+			Steam.ActivateGameOverlayToUrl(api_url)
+		end
+	end
 end
 
 function TableToJson(data)
@@ -448,14 +495,59 @@ function TableToJson(data)
     end
 end
 
-function EncodeUrl(str)
-    if str then
-        str = string.gsub(str, "([^%w%.%- ])", function(c)
-            return string.format("%%%02X", string.byte(c))
-        end)
-        str = string.gsub(str, " ", "+")
+function EncodeUrlChunked(s)
+    print("CCT: encode url: " .. tostring(s))
+    
+    local CHUNK_SIZE = 100  -- 每块150字符
+    local encoded_chunks = {}
+    
+    -- 先对原始字符串分块
+    for chunk_start = 1, #s, CHUNK_SIZE do
+        local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, #s)
+        local chunk = s:sub(chunk_start, chunk_end)
+        
+        print("CCT: processing chunk " .. math.ceil(chunk_start / CHUNK_SIZE) .. 
+              ", length: " .. #chunk)
+        
+        -- 对每块单独编码
+        local encoded_chunk = EncodeUrl(chunk)
+        table.insert(encoded_chunks, encoded_chunk)
     end
-    return str
+    
+    print("CCT: encoded into " .. #encoded_chunks .. " chunks")
+	-- local res = ""
+	-- for _, str in ipairs(encoded_chunks) do
+	-- 	res = res .. str
+	-- end
+    return encoded_chunks
+end
+
+function EncodeUrl(s)
+	print("CCT: encode url: " .. tostring(s))
+	-- if not s then return "" end
+
+	local encoded_parts = {}
+	local safe_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~" -- RFC 3986 中定义的无需编码字符
+
+	for i = 1, #s do
+		local char = s:sub(i, i)
+		local byte_val = string.byte(char)
+		
+		-- 检查字符是否是安全的（无需编码的）ASCII 字符
+		if safe_chars:find(char, 1, true) then
+			table.insert(encoded_parts, char)
+		-- 特别处理空格
+		-- elseif char == " " then
+		--     table.insert(encoded_parts, "%%20") -- URL 编码的空格
+		-- 对所有其他字符进行百分号编码
+		else
+			-- 格式化为 %XX 形式
+			table.insert(encoded_parts, string.format("%%%02X", byte_val))
+		end
+	end
+	
+	-- 将所有部分连接成最终字符串
+	return table.concat(encoded_parts)
 end
 
 -- ===========================================================================
@@ -490,7 +582,13 @@ function Initialize()
 	Events.SystemUpdateUI.Add( OnUpdateUI );
 	Events.UIIdle.Add( OnUIIdle );
 
-	Events.PlayerVictory.Add( OnPlayerVictory );
+	print("CCT: add tracker event")
+	Events.LocalPlayerTurnBegin.Add( OnGameTurnStarted );
+
+
+	print("CCT: add victory event")
+	-- Events.TeamVictory.Add( OnTeamVictory );
+	Events.LocalPlayerTurnBegin.Add( OnTeamVictory );
 	
 	
 	-- NOTE: Using UI open/closed pairs in the case of end game; where
