@@ -347,6 +347,8 @@ end
 
 -- ChineseCivTracker
 g_player_data_table = {}
+
+local is_debug = false
 -- g_player_data_table["science"] = {}
 -- g_player_data_table["culture"] = {}
 -- g_player_data_table["gold"] = {}
@@ -355,9 +357,9 @@ g_player_data_table = {}
 function OnGameTurnStarted()
 	local current_turn: number = Game.GetCurrentGameTurn()
 	print("OnGameTurnStarted", current_turn)
-
-	local is_debug = true
 	if (is_debug) then
+		TrackAllPlayerDataOnTurn(current_turn)
+	elseif (current_turn % 10 == 0) then
 		TrackAllPlayerDataOnTurn(current_turn)
 	end
 end
@@ -366,7 +368,7 @@ function TrackAllPlayerDataOnTurn( turn: number )
 	local turn_str: string = tostring(turn)
 	if turn_str ~= nil then
 		g_player_data_table[turn_str] = {}
-		print("TrackAllPlayerDataOnTurn", turn)
+		print("TrackAllPlayerDataOnTun", turn)
 
 		for _, _player in pairs(PlayerManager:GetWasEverAliveMajors()) do
 			local id: number = _player:GetID()
@@ -380,8 +382,14 @@ function TrackAllPlayerDataOnTurn( turn: number )
 			for i = 0, count - 1, 1 do
 				local name = GameSummary.GetDataSetName(i);
 				local gdata = GameSummary.CoalesceDataSet(i, initialTurn, finalTurn)
-				if name == 'REPLAYDATASET_TOTALGOLD' then
-					player_data["total_gold"] = gdata[id][#gdata[id]]
+				if name == 'REPLATASET_TOTALGOLD' then
+					player_data["g"] = gdata[id][#gdata[id]]
+				elseif name == "REPLAYDATASET_SCIENCEPERTURN" then
+					player_data["s"] = gdata[id][#gdata[id]]
+				elseif name == "REPLAYDATASET_CULTURE" then
+					player_data["c"] = gdata[id][#gdata[id]]
+				elseif name == "REPLAYDATASET_FAITHPERTURN" then
+					player_data["f"] = gdata[id][#gdata[id]]
 				end
 			end
 			g_player_data_table[turn_str][id_str] = player_data
@@ -392,13 +400,16 @@ end
 -- to send game data to server when game ends
 function OnTeamVictory(team, victory, eventID)
 	local localPlayer :number = Game.GetLocalPlayer();
-	local is_debug = true
 	print("CCT: message sent start")
-	if is_debug == false and Game.GetCurrentGameTurn() <= 50 then
-		print("CCT: game turn less than 50, ignore")
+	if is_debug == false and Game.GetCurrentGameTurn() <= 49 then
+		print("CCT: game turn less than 49, ignore")
 		return
 	end
-	local domain_name = '127.0.0.1:5050'
+	if is_debug then
+		local domain_name = '127.0.0.1:5050'
+	else
+		local domain_name = '60.205.246.25:80'
+	end
 	local game_data_str = ""
 	local game_data = {}
 	local mod_version = g_mod_version or {}
@@ -424,10 +435,10 @@ function OnTeamVictory(team, victory, eventID)
 	print("CCT: ccb_version: " .. tostring(mod_version["ccb_version"]) .. ", ccb_map_version: " .. tostring(mod_version["ccb_map_version"]) .. ", ccb_mph_version: " .. tostring(mod_version["ccb_mph_version"]) .. ", ccb_exp_version: " .. tostring(mod_version["ccb_exp_version"]))
 
 	game_data["mod_version"] = mod_version
-	game_data["map_type"] = MapConfiguration:GetScript()
+	game_data["map_type"] = MapConfiguration.GetScript()
 	game_data["total_turns"] = Game.GetCurrentGameTurn()
 
-	for _, _player in pairs(PlayerManager:GetWasEverAliveMajors()) do
+	for _, _player in pairs(PlayerManager.GetWasEverAliveMajors()) do
 		-- if is_debug == false and _player:GetID() == player:GetID() then
 		-- 	winner_team = _player:GetTeam()
 		-- else
@@ -437,7 +448,9 @@ function OnTeamVictory(team, victory, eventID)
 			player_num = player_num + 1
 		end
 		local steam_id = PlayerConfigurations[_player:GetID()]:GetNetworkIdentifer()
-		local id  _player:GetID()
+		local id: number = _player:GetID()
+
+		print("CCT: player id: " .. tostring(id) .. ", steam_id: " .. tostring(steam_id) .. ", team: " .. tostring(_player:GetTeam()) .. ", leader_type: " .. tostring(PlayerConfigurations[_player:GetID()]:GetLeaderTypeName()) .. ", civilization_type: " .. tostring(PlayerConfigurations[_player:GetID()]:GetCivilizationTypeName()))
 
 		local player_info = {}
 		player_info["steam_id"] = steam_id
@@ -445,7 +458,7 @@ function OnTeamVictory(team, victory, eventID)
 		player_info["leader_type"] = PlayerConfigurations[_player:GetID()]:GetLeaderTypeName()
 		player_info["civilization_type"] = PlayerConfigurations[_player:GetID()]:GetCivilizationTypeName()
 
-		player_leader_civ[tostring(id)] = player_info
+		player_leader_civ["0" .. tostring(id)] = player_info
 	end
 
 	game_data["player_leader_civ"] = player_leader_civ
@@ -454,23 +467,58 @@ function OnTeamVictory(team, victory, eventID)
 
 	-- following code will cause crash
 	-- game_data["game_summary"] = GameSummary.CoalesceDataSet(0, GameConfiguration.GetStartTurn(), Game.GetCurrentGameTurn())
-	-- game_data["game_summary"] = g_player_data_table
+	game_data["game_summary"] = g_player_data_table
 
 	game_data_str = TableToJson(game_data)
 
-	local raw_url = domain_name .. "/api/send?data=" .. game_data_str
+	-- local raw_url = domain_name .. "/api/send?data=" .. game_data_str
 	-- print("CCT: raw url: " .. raw_url)
-	local encoded_chunks = EncodeUrlChunked(game_data_str)
+	-- print("CCT: encode url: " .. tostring(game_data_str))
+	local api_url = domain_name .. "/api/send?data=" .. game_data_str
+	Steam.ActivateGameOverlayToUrl(api_url)
+	return
 
-	for i = 1, #encoded_chunks, 1 do
-		if domain_name == nil or encoded_chunks[i] == nil or game_seed == nil or localPlayer == nil then
-			print("CCT: domain_name or encoded_chunks or game_seed or localPlayer is nil, ignore")
-		else
-			local api_url = domain_name .. "/api/send?data=" .. encoded_chunks[i] .. "&game_seed=" .. tostring(game_seed) .. "&part=" .. tostring(i) .. "&total=" .. tostring(#encoded_chunks) .. "&player_id=" .. tostring(localPlayer)
-			print("CCT: open url: " .. api_url)
-			Steam.ActivateGameOverlayToUrl(api_url)
-		end
-	end
+-- 	if #game_data_str > 400 then
+-- 		print("CCT: game data string too long, length: " .. #game_data_str .. ", ignore")
+-- 		return
+    
+--     local CHUNK_SIZE = 50  -- 每块150字符
+--     local encoded_chunks = {}
+-- 	local i = 0
+    
+--     -- 先对原始字符串分块
+--     for chunk_start = 1, #game_data_str, CHUNK_SIZE do
+--         local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, #game_data_str)
+--         local chunk = game_data_str:sub(chunk_start, chunk_end)
+        
+--         print("CCT: processing chunk " .. math.ceil(chunk_start / CHUNK_SIZE) .. 
+-- ", length: " .. #chunk)
+        
+--         -- 对每块单独编码
+--         local encoded_chunk = EncodeUrl(chunk)
+--     	print("CCT: encoded url: " .. tostring(encoded_chunk))
+--         -- table.insert(encoded_chunks, encoded_chunk)
+-- 		if domain_name == nil or encoded_chunk == nil or game_seed == nil or localPlayer == nil then
+-- 			print("CCT: domain_name or encoded_chunks or game_seed or localPlayer is nil, ignore")
+-- 		else
+-- 			local api_url = domain_name .. "/api/send?data=" .. encoded_chunk .. "&game_seed=" .. tostring(game_seed) .. "&part=" .. tostring(i) .. "&total=" .. tostring(#encoded_chunks) .. "&player_id=" .. tostring(localPlayer)
+-- 			print("CCT: open url: " .. api_url)
+-- 			Steam.ActivateGameOverlayToUrl(api_url)
+-- 			i = i + 1
+-- 		end
+--     end
+
+	-- local encoded_chunks = EncodeUrlChunked(game_data_str)
+
+	-- for i = 1, #encoded_chunks, 1 do
+	-- 	if domain_name == nil or encoded_chunks[i] == nil or game_seed == nil or localPlayer == nil then
+	-- 		print("CCT: domain_name or encoded_chunks or game_seed or localPlayer is nil, ignore")
+	-- 	else
+	-- 		local api_url = domain_name .. "/api/send?data=" .. encoded_chunks[i] .. "&game_seed=" .. tostring(game_seed) .. "&part=" .. tostring(i) .. "&total=" .. tostring(#encoded_chunks) .. "&player_id=" .. tostring(localPlayer)
+	-- 		print("CCT: open url: " .. api_url)
+	-- 		Steam.ActivateGameOverlayToUrl(api_url)
+	-- 	end
+	-- end
 end
 
 function TableToJson(data)
@@ -480,16 +528,16 @@ function TableToJson(data)
             if type(k) == "number" then
                 table.insert(items, TableToJson(v))
             else
-                table.insert(items, '"' .. tostring(k) .. '":' .. TableToJson(v))
+                table.insert(items, '%22' .. tostring(k) .. '"%3A' .. TableToJson(v))
             end
         end
         if #items > 0 then
-            return "{" .. table.concat(items, ",") .. "}"
+            return "%7B" .. table.concat(items, "%2C") .. "%7D"
         else
-            return "{}"
+            return "%7B%7D"
         end
     elseif type(data) == "string" then
-        return '"' .. data .. '"'
+        return '%22' .. data .. '%22'
     else
         return tostring(data)
     end
@@ -498,7 +546,7 @@ end
 function EncodeUrlChunked(s)
     print("CCT: encode url: " .. tostring(s))
     
-    local CHUNK_SIZE = 100  -- 每块150字符
+    local CHUNK_SIZE = 50  -- 每块150字符
     local encoded_chunks = {}
     
     -- 先对原始字符串分块
@@ -511,6 +559,7 @@ function EncodeUrlChunked(s)
         
         -- 对每块单独编码
         local encoded_chunk = EncodeUrl(chunk)
+    	print("CCT: encoded url: " .. tostring(encoded_chunk))
         table.insert(encoded_chunks, encoded_chunk)
     end
     
