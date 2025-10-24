@@ -64,10 +64,10 @@ function UnitFlag.UpdatePromotions(self)
 end
 
 function OnTPT_Settings_Toggle(ParameterId, Value)
-	Show_BER = true
-	-- if ParameterId == "GreatGeneralEraReminder_Show" then
-	-- 	Show_BER = Value
-	-- 	return
-	-- end
+	-- Show_BER = true
+	if ParameterId == "GreatGeneralEraReminder_Show" then
+		Show_BER = Value
+		return
+	end
 end
 LuaEvents.TPT_Settings_Toggle.Add(OnTPT_Settings_Toggle)

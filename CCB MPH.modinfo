@@ -466,6 +466,26 @@
             </Properties>
             <File>ui/Replacements/unitflagmanager.lua</File>
         </ImportFiles>
+		<!-- 设置面板(Settings) -->
+		<UpdateDatabase id="SettingsData">
+			<File>Settings/TPT_Settings.sql</File>
+		</UpdateDatabase>
+		<UpdateText id="Settings_Text">
+			<File>Settings/TPT_Settings_Text.xml</File>
+		</UpdateText>
+		<AddUserInterfaces id="Settings">
+			<Properties>
+				<Context>InGame</Context>
+			</Properties>
+			<File>Settings/UI/TPT_SettingsPanel.xml</File>
+		</AddUserInterfaces>
+		<!-- 交易通知提醒(NDR) -->
+		<ImportFiles id="NotificationDeal_Import">
+			<Properties>
+				<LoadOrder>101</LoadOrder>
+			</Properties>
+			<File>NDR/NotificationPanel_DealRemind.lua</File>
+		</ImportFiles>
 
     </InGameActions>
     <Files>
@@ -558,6 +578,11 @@
         <File>icons/Anonymous_44.dds</File>
         <File>icons/Sudden_Death_Icons.xml</File>
         <File>icons/Sudden_Death_44.dds</File>
-
+        
+		<File>Settings/TPT_Settings.sql</File>
+		<File>Settings/TPT_Settings_Text.xml</File>
+		<File>Settings/UI/TPT_SettingsPanel.lua</File>
+		<File>Settings/UI/TPT_SettingsPanel.xml</File>
+		<File>NDR/NotificationPanel_DealRemind.lua</File>
     </Files>
 </Mod>
