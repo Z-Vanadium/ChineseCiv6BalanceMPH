@@ -1,5 +1,7 @@
 <GameInfo>
 	<ConfigurationUpdates>
+		<!--  CCB Casual Defaulting  -->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="BBSRidge" TargetValue="1" Hash="0" />
 		<!--  CCB STD Defaulting  -->
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Map" TargetId="BBSRidge" TargetValue="1" Hash="0" />
 		<!--  CWC Defaulting  -->

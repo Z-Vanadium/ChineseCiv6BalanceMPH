@@ -1,5 +1,7 @@
 <GameInfo>
 	<ConfigurationUpdates>
+		<!--  CCB Casual Default Tournament Name  -->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="BSM_TOURNAMENT" TargetValue="Civilization World Cup" Hash="0" />
 		<!--  CCB STD Default Tournament Name  -->
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="BSM_TOURNAMENT" TargetValue="Civilization World Cup" Hash="0" />
 		<!--  CWC Default Tournament Name  -->

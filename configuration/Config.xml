@@ -145,6 +145,7 @@
 
 		<Row Domain="MphPreset" Value="0" Name="MPH_PRESET_NONE_NAME" Description="MPH_PRESET_NONE_DESC" SortIndex="0"/>
 		<Row Domain="MphPreset" Value="12" Name="MPH_PRESET_CCB_STD_NAME" Description="MPH_PRESET_CCB_STD_DESC" SortIndex="1"/>
+		<Row Domain="MphPreset" Value="13" Name="MPH_PRESET_CCB_CASUAL_NAME" Description="MPH_PRESET_CCB_CASUAL_DESC" SortIndex="5"/>
 		<Row Domain="MphPreset" Value="1" Name="MPH_PRESET_CWC_NAME" Description="MPH_PRESET_CWC_DESC" SortIndex="10"/>
 		<Row Domain="MphPreset" Value="2" Name="MPH_PRESET_CPLFFA_NAME" Description="MPH_PRESET_CPLFFA_DESC" SortIndex="20"/>
 		<Row Domain="MphPreset" Value="3" Name="MPH_PRESET_CIVFRTEAMER_NAME" Description="MPH_PRESET_CIVFRTEAMER_DESC" SortIndex="30"/>
@@ -233,6 +234,27 @@
 	<ConfigurationUpdates>
 <!--  Vote Draft Can Only Be Random -->
 		<Row SourceGroup="Game" SourceId="CPL_BAN_FORMAT" SourceValue="4" TargetGroup="Game" TargetId="DRAFT_SLOT_ORDER" TargetValue="0" />
+		<!--  CCB Casual Defaulting  -->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="MPH_OFFICIAL_GAME" TargetValue="0" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="PRIVATE_GAME" TargetValue="1" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="NO_DUPLICATE_LEADERS" TargetValue="0" Hash="0" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="NO_DUPLICATE_CIVILIZATIONS" TargetValue="0" Hash="0" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="GAME_START_ERA" TargetValue="ERA_ANCIENT" Hash="1"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="GAME_TURN_LIMIT" TargetValue="TURNLIMIT_GAMESPEED" Hash="1"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="world_age" TargetValue="1" Hash="0"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="MAP_SIZE" TargetValue="MAPSIZE_STANDARD" Hash="1"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="GAME_NO_BARBARIANS" TargetValue="1" Hash="0"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="CPL_NO_PINS" TargetValue="1"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="CPL_SMARTTIMER" TargetValue="0"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="NO_TRADING_CITIES" TargetValue="1" />
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="resources" TargetValue="2"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="BBSStratRes" TargetValue="3"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="NO_TRADING_GOLD" TargetValue="0"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="NO_TRADING_STRATEGICS" TargetValue="0"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="ALLIANCE_MILITARY" TargetValue="1"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="GAME_REALISM" TargetValue="1"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="DRAFT_MAP" TargetValue="1" Hash="0"/>
+
 		<!--  CCB STD Defaulting  -->
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="MPH_OFFICIAL_GAME" TargetValue="1" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="12" TargetGroup="Game" TargetId="PRIVATE_GAME" TargetValue="1" />

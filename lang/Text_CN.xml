@@ -4,10 +4,16 @@
 
         <!-- CCB -->
         <Replace Tag="MPH_PRESET_CCB_STD_NAME" language="zh_Hans_CN">
-            <Text>CCB 预设</Text>
+            <Text>CCB 正式比赛预设</Text>
         </Replace>
         <Replace Tag="MPH_PRESET_CCB_STD_DESC" language="zh_Hans_CN">
-            <Text>CCB 国人常用设置。</Text>
+            <Text>CCB 国人正式比赛常用设置。</Text>
+        </Replace>
+        <Replace Tag="MPH_PRESET_CCB_CASUAL_NAME" language="zh_Hans_CN">
+            <Text>CCB 群车预设</Text>
+        </Replace>
+        <Replace Tag="MPH_PRESET_CCB_CASUAL_DESC" language="zh_Hans_CN">
+            <Text>CCB 国人群车常用设置。</Text>
         </Replace>
 
         <!-- New entries -->
