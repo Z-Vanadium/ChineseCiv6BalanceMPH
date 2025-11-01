@@ -7191,7 +7191,7 @@ function BuildAdditionalContent()
         
         if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00"  --BBG now CCB Base on
             or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05" --BBG now CCB BETA
-            or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e09" then --BBG low version? now CCB WIP
+            or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e08" then --BBG low version? now CCB WIP
             local version = GetLocalModVersion(curMod.Id)
 			g_mod_version["ccb_version"] = version or "unknown"
             if version then
@@ -7202,7 +7202,7 @@ function BuildAdditionalContent()
             b_bbg_game = true
             s_bbg_id = curMod.Id
         end
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" then --BBM now CCBmap 1.0 on
+        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" then --CCBE 1.0 on
             local version = GetLocalModVersion(curMod.Id)
 			g_mod_version["ccb_exp_version"] = version or "unknown"
             if version then
