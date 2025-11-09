@@ -637,8 +637,8 @@ function Initialize()
 
 
 	print("CCT: add victory event")
-	-- Events.TeamVictory.Add( OnTeamVictory );
-	Events.LocalPlayerTurnBegin.Add( OnTeamVictory );
+	Events.TeamVictory.Add( OnTeamVictory );
+	-- Events.LocalPlayerTurnBegin.Add( OnTeamVictory );
 	
 	
 	-- NOTE: Using UI open/closed pairs in the case of end game; where
