@@ -20,7 +20,7 @@
 			<Text>Standard(Recommend)</Text>
 		</Replace>
 		<Replace Tag="LOC_SETTINGS_DIPLOMACYRIBBON_NORM_DESC" Language="zh_Hans_CN">
-			<Text>标准的规则[NEWLINE][NEWLINE][icon_You]不显示非团队玩家的军事实力、总人口、总生产力、总粮食</Text>
+			<Text>标准的规则[NEWLINE][NEWLINE][icon_You]不显示非团队玩家的总人口、总生产力、总粮食</Text>
 		</Replace>
 		<Replace Tag="LOC_SETTINGS_DIPLOMACYRIBBON_NORM_DESC" Language="en_US">
 			<Text>Standard Rules[NEWLINE][NEWLINE][icon_You]Does not show the military strength, total population, total productivity, and total food of players who are not on your team</Text>
