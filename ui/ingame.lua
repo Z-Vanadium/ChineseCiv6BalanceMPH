@@ -468,7 +468,7 @@ function OnTeamVictory(team, victory, eventID)
 
 	-- following code will cause crash
 	-- game_data["game_summary"] = GameSummary.CoalesceDataSet(0, GameConfiguration.GetStartTurn(), Game.GetCurrentGameTurn())
-	game_data["game_summary"] = g_player_data_table
+	-- game_data["game_summary"] = g_player_data_table
 
 	game_data_str = TableToJson(game_data)
 
