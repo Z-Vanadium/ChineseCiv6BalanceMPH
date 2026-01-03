@@ -2,7 +2,7 @@
 <Mod id="8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20" version="111">
 
     <Properties>
-        <Name>CCB MPH 多人游戏助手 1.1.1</Name>
+        <Name>CCB MPH 多人游戏助手 WIP 1.1.1</Name>
         <Description>面向于电子竞技的模组，提升比赛、游戏的稳定性，并全面改善多人游戏的体验。[NEWLINE][NEWLINE][COLOR_RED]每次开启和关闭该模组时需要重启游戏以生效。[ENDCOLOR][NEWLINE][NEWLINE]否则模组中的一些功能会失效（例如征召功能）</Description>
         <Version>111</Version>
         <Created>1</Created>
@@ -91,6 +91,23 @@
                 <Value>1</Value>
             </ConfigurationValueMatches>
         </Criteria>
+		<!--外交能见度模式(DPR)-->
+		<Criteria id="SETTINGS_UI_DiplomacyRibbon" any="1">
+			<ConfigurationValueMatches>
+				<Group>Game</Group>
+				<ConfigurationId>SETTINGS_UI_DPR</ConfigurationId>
+				<Value>1</Value>
+			</ConfigurationValueMatches>
+			<ConfigurationValueMatches>
+				<Group>Game</Group>
+				<ConfigurationId>SETTINGS_UI</ConfigurationId>
+				<Value>SETTINGS_UI_ENABLE_ALL</Value>
+			</ConfigurationValueMatches>
+		</Criteria>
+		<!--不兼容独立的外交能见度模式DPR-->
+		<Criteria id="Disable_DPR">
+			<ModInUse inverse="1">00000000-0000-1103-34FC-80A16F3198D3</ModInUse>	<!--	Team PVP 外交能见度模式	-->
+		</Criteria>
     </ActionCriteria>
 
     <FrontEndActions>
@@ -145,6 +162,21 @@
                 <File>mode/anonymous/Anonymous_Background.dds</File>
             </Items>
         </ImportFiles>
+
+        
+		<!--外交能见度模式(DPR)-->
+		<UpdateDatabase id="Cfg_DPR" criteria="Disable_DPR">
+			<Properties>
+				<LoadOrder>10</LoadOrder>
+			</Properties>
+			<File>DPR/Config_DPR.xml</File>
+		</UpdateDatabase>
+		<UpdateText id="Config_Text" criteria="Disable_DPR">
+			<File>DPR/Config_DPR_Text.xml</File>
+		</UpdateText>
+		<UpdateDatabase id="Hotkeys_DPR_Configs" criteria="Disable_DPR">
+			<File>DPR/Config_Hotkeys_DPR.xml</File>
+		</UpdateDatabase>
 
     </FrontEndActions>
     <InGameActions>
@@ -487,6 +519,43 @@
 			<File>NDR/NotificationPanel_DealRemind.lua</File>
 		</ImportFiles>
 
+        
+		<!--外交能见度模式(DPR)-->
+		<ReplaceUIScript id="WorldRankings" criteria="SETTINGS_UI_DiplomacyRibbon">		<!-- 禁用世界排名 -->
+			<Properties>
+				<LoadOrder>120</LoadOrder>
+				<LuaContext>WorldRankings</LuaContext>
+				<LuaReplace>DPR/UI/WorldRankings_TPT.lua</LuaReplace>
+			</Properties>
+		</ReplaceUIScript>
+		<ImportFiles id="Replace_UI_WorldRankings" criteria="SETTINGS_UI_DiplomacyRibbon">
+			<Properties>
+				<LoadOrder>121</LoadOrder>
+			</Properties>
+			<File>DPR/UI/WorldRankings.xml</File>
+			<File>DPR/UI/WorldRankings_TPT.lua</File>
+		</ImportFiles>
+		<UpdateText id="Config_Text" criteria="Disable_DPR">
+			<File>DPR/Config_DPR_Text.xml</File>
+		</UpdateText>
+		<UpdateText id="UpdateText" criteria="SETTINGS_UI_DiplomacyRibbon">
+			<File>DPR/DiplomacyRibbon_Text.xml</File>
+		</UpdateText>
+		<ReplaceUIScript id="DiplomacyRibbon" criteria="SETTINGS_UI_DiplomacyRibbon">
+			<Properties>
+				<LoadOrder>101</LoadOrder>
+				<LuaContext>DiplomacyRibbon</LuaContext>
+				<LuaReplace>DPR/UI/DiplomacyRibbon_TPT.lua</LuaReplace>
+			</Properties>
+		</ReplaceUIScript>
+		<ImportFiles id="Replace_UI_DiplomacyRibbon" criteria="SETTINGS_UI_DiplomacyRibbon">
+			<Properties>
+				<LoadOrder>102</LoadOrder>
+			</Properties>
+			<File>DPR/UI/DiplomacyRibbon.xml</File>
+			<File>DPR/UI/DiplomacyRibbon_TPT.lua</File>
+		</ImportFiles>
+
     </InGameActions>
     <Files>
 		<File>BER/UnitFlagManager_GreatGeneralEraReminder.lua</File>
@@ -584,5 +653,14 @@
 		<File>Settings/UI/TPT_SettingsPanel.lua</File>
 		<File>Settings/UI/TPT_SettingsPanel.xml</File>
 		<File>NDR/NotificationPanel_DealRemind.lua</File>
+
+		<File>DPR/Config_DPR.xml</File>
+		<File>DPR/Config_DPR_Text.xml</File>
+		<File>DPR/Config_Hotkeys_DPR.xml</File>
+		<File>DPR/DiplomacyRibbon_Text.xml</File>
+		<File>DPR/UI/DiplomacyRibbon.xml</File>
+		<File>DPR/UI/DiplomacyRibbon_TPT.lua</File>
+		<File>DPR/UI/WorldRankings.xml</File>
+		<File>DPR/UI/WorldRankings_TPT.lua</File>
     </Files>
 </Mod>
