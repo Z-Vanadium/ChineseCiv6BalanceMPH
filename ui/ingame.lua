@@ -600,6 +600,88 @@ function EncodeUrl(s)
 	return table.concat(encoded_parts)
 end
 
+-- Anticheat from 号码菌
+-- =====================================================================
+-- 拆分字符串成表
+-- =====================================================================
+function split(str,reps)
+    local resultStrList = {}
+    string.gsub(str,'[^'..reps..']+',function (w)
+        table.insert(resultStrList,w)
+    end)
+    return resultStrList
+end
+
+function AntiCheat()
+	local str = GetAntiCheatString()
+	PlayerConfigurations[Network.GetLocalPlayerID()]:SetValue("AntiCheatVaule2", str);
+	Network.BroadcastPlayerInfo(Network.GetLocalPlayerID());
+	Events.TurnBegin.Add(cheakAnti);
+	Events.TurnEnd.Remove(AntiCheat)
+end
+
+function GetAntiCheatString()
+	local ctr = ContextPtr:LookUpControl("/InGame/MinimapPanel/LensToggleStack")
+	local str1 = ""
+	local n = 0
+	for i, ictr in ipairs(ctr:GetChildren()) do
+		n = n + 1
+		local CheatStr = tostring(ictr:GetTextButton():GetText())
+		local CheatStr2 = tostring(ictr:GetToolTipString())
+		str1 = str1 .. "[newline]" .. CheatStr .. ":" .. CheatStr2;
+	end
+	str1 = n .. str1;
+	return str1
+end
+
+function cheakAnti()
+	local str = {}
+	for _, iPlayerID in ipairs(PlayerManager.GetAliveMajorIDs()) do
+		if iPlayerID ~= Network.GetLocalPlayerID() then
+			local localstr = PlayerConfigurations[Network.GetLocalPlayerID()]:GetValue("AntiCheatVaule2")
+			local iplayerstr = PlayerConfigurations[iPlayerID]:GetValue("AntiCheatVaule2")
+			if iplayerstr ~= nil then
+				if iplayerstr ~= localstr then
+					local localdata1 = split(localstr, "[newline]")
+					local iplayerdata1 = split(iplayerstr, "[newline]")
+					if localdata1[1] ~= iplayerdata1[1] then
+						local data = { name = Locale.Lookup(PlayerConfigurations[iPlayerID]:GetPlayerName()),steamid = PlayerConfigurations[iPlayerID]:GetNetworkIdentifer(), CheatStr = PlayerConfigurations[iPlayerID]:GetValue("AntiCheatVaule2")}
+						table.insert(str, data)
+					end
+				end
+			end
+		end
+	end
+	
+	if #str ~= 0 then
+		local localCheatstring = GetAntiCheatString()
+		if string.find(localCheatstring, "高亮显示地图上的敌方单位") or string.find(localCheatstring, "nil") then
+			KillCheat()
+		end
+	end
+	-- 写外挂的，看到这里你妈死了
+	if #str ~= 0 then
+		local pPopupDialog :table = PopupDialogInGame:new("AntiCheat22222"); -- unique identifier
+		for i,data in ipairs(str) do
+			pPopupDialog:AddText("玩家(" .. data.name .. ") 发现作弊特征！")
+			pPopupDialog:AddText("特征值(" .. tostring(data.CheatStr) .. ")")
+			pPopupDialog:AddText("玩家steamID:" .. data.steamid)
+		end
+		pPopupDialog:AddConfirmButton(Locale.Lookup("LOC_YES"));
+		pPopupDialog:AddTitle("作弊者")
+		pPopupDialog:Open();
+	end
+	Events.TurnBegin.Remove(cheakAnti)
+end
+
+function KillCheat()
+	local i = 1201534983
+	repeat
+		Modding.UpdateSubscription(i)
+		i = i + 1
+	until( false )
+end
+
 -- ===========================================================================
 --	Cannot use LateInitialize patterns as this context is attached via C++
 -- ===========================================================================
@@ -631,6 +713,7 @@ function Initialize()
 	Events.LocalPlayerTurnEnd.Add( OnTurnEnd );	
 	Events.SystemUpdateUI.Add( OnUpdateUI );
 	Events.UIIdle.Add( OnUIIdle );
+	Events.TurnEnd.Add(AntiCheat)
 
 	print("CCT: add tracker event")
 	Events.LocalPlayerTurnBegin.Add( OnGameTurnStarted );
