@@ -247,7 +247,7 @@
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="world_age" TargetValue="1" Hash="0"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="MAP_SIZE" TargetValue="MAPSIZE_STANDARD" Hash="1"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="GAME_NO_BARBARIANS" TargetValue="1" Hash="0"/>
-		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="CPL_NO_PINS" TargetValue="1"/>
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="CPL_NO_PINS" TargetValue="0"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="CPL_SMARTTIMER" TargetValue="0"/>
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Game" TargetId="NO_TRADING_CITIES" TargetValue="1" />
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="13" TargetGroup="Map" TargetId="resources" TargetValue="2"/>
