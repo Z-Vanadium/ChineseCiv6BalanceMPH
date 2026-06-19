@@ -22,5 +22,9 @@
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="10" TargetGroup="Game" TargetId="BSM_TOURNAMENT" TargetValue="2vi2 " Hash="0" />
 		<!-- GOAT Default Name -->
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="11" TargetGroup="Game" TargetId="BSM_TOURNAMENT" TargetValue="G.O.A.T. Tournament" Hash="0" />
+		<!-- CCB CNL Default Name -->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="14" TargetGroup="Game" TargetId="BSM_TOURNAMENT" TargetValue="CCB Chinese Community League" Hash="0" />
+		<!-- CCB CNL Junior Default Name -->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="15" TargetGroup="Game" TargetId="BSM_TOURNAMENT" TargetValue="CCB Chinese Community League (Junior)" Hash="0" />
 	</ConfigurationUpdates>
 </GameInfo>
