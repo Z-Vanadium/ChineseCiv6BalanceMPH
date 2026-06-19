@@ -16,6 +16,20 @@
             <Text>CCB 国人群车常用设置。</Text>
         </Replace>
 
+        <!-- CCB CNL -->
+        <Replace Tag="MPH_PRESET_CCB_CNL_NAME" language="zh_Hans_CN">
+            <Text>CCB 中国社区联赛</Text>
+        </Replace>
+        <Replace Tag="MPH_PRESET_CCB_CNL_DESC" language="zh_Hans_CN">
+            <Text>CCB 中国社区联赛常用设置。</Text>
+        </Replace>
+        <Replace Tag="MPH_PRESET_CCB_CNL_JR_NAME" language="zh_Hans_CN">
+            <Text>CCB 中国社区联赛（初级组）</Text>
+        </Replace>
+        <Replace Tag="MPH_PRESET_CCB_CNL_JR_DESC" language="zh_Hans_CN">
+            <Text>CCB 中国社区联赛初级组比赛设置。资源丰富，特定地图开启淡水补偿与航海术下海。</Text>
+        </Replace>
+
         <!-- New entries -->
         <Replace Tag="LOC_MAP_RICH_HIGHTLANDS_NANME" language="zh_Hans_CN">
             <Text>丰富高地</Text>
