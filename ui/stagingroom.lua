@@ -119,6 +119,228 @@ local b_mods_ok = false
 local g_cached_playerIDs = {}
 local g_map_pool = {}
 local g_version_map = {}	
+
+local MIRROR_SLOT_AUTO:string = "AUTO";
+local MIRROR_SLOT_VALUES:table = { "AUTO", "A1", "A2", "B1", "B2" };
+local MIRROR_SLOT_LABELS:table = {
+	AUTO = "LOC_MIRROR_SLOT_AUTO_NAME",
+	A1 = "LOC_MIRROR_SLOT_A1_NAME",
+	A2 = "LOC_MIRROR_SLOT_A2_NAME",
+	B1 = "LOC_MIRROR_SLOT_B1_NAME",
+	B2 = "LOC_MIRROR_SLOT_B2_NAME",
+};
+local MIRROR_SLOT_TOOLTIPS:table = {
+	AUTO = "LOC_MIRROR_SLOT_AUTO_DESC",
+	A1 = "LOC_MIRROR_SLOT_A1_DESC",
+	A2 = "LOC_MIRROR_SLOT_A2_DESC",
+	B1 = "LOC_MIRROR_SLOT_B1_DESC",
+	B2 = "LOC_MIRROR_SLOT_B2_DESC",
+};
+
+local function GetMirrorExpectedPlayerCount()
+	local participatingCount = GameConfiguration.GetParticipatingPlayerCount();
+	if participatingCount ~= nil and participatingCount <= 2 then
+		return 2;
+	end
+	return 4;
+end
+
+local function GetMirrorAvailableSlotValues()
+	local values:table = { MIRROR_SLOT_AUTO, "A1", "A2" };
+	if GetMirrorExpectedPlayerCount() > 2 then
+		table.insert(values, "B1");
+		table.insert(values, "B2");
+	end
+	return values;
+end
+
+local function IsMirrorSlotValueAvailable(slotValue:string)
+	for _, allowedValue in ipairs(GetMirrorAvailableSlotValues()) do
+		if allowedValue == slotValue then
+			return true;
+		end
+	end
+	return false;
+end
+
+local function NormalizeMapScriptValue(mapScript)
+	if mapScript == nil then
+		return nil;
+	end
+
+	local normalized = tostring(mapScript);
+	normalized = string.gsub(normalized, "\\", "/");
+	local fileName = string.match(normalized, "([^/]+)$");
+	return fileName or normalized;
+end
+
+local function IsMirrorMapActive()
+	return NormalizeMapScriptValue(MapConfiguration.GetValue("MAP_SCRIPT")) == "Mirror.lua";
+end
+
+local function IsMirrorGenerationEnabled()
+	local enabled = GameConfiguration.GetValue("MIRROR_ENABLED");
+	local enabledText = tostring(enabled);
+	local isEnabled = enabled == true or enabled == 1 or enabledText == "1" or enabledText == "true";
+	return IsMirrorMapActive() and isEnabled;
+end
+
+local function CanUseMirrorSlot(playerID:number)
+	if not IsMirrorGenerationEnabled() then
+		return false;
+	end
+
+	if GameConfiguration.IsHotseat() then
+		return false;
+	end
+
+	local pPlayerConfig = PlayerConfigurations[playerID];
+	if pPlayerConfig == nil then
+		return false;
+	end
+
+	local slotStatus = pPlayerConfig:GetSlotStatus();
+	if slotStatus ~= SlotStatus.SS_TAKEN then
+		return false;
+	end
+
+	return pPlayerConfig:GetCivilizationLevelTypeID() == CivilizationLevelTypes.CIVILIZATION_LEVEL_FULL_CIV;
+end
+
+local function GetMirrorSlotValue(playerID:number)
+	local pPlayerConfig = PlayerConfigurations[playerID];
+	if pPlayerConfig == nil then
+		return MIRROR_SLOT_AUTO;
+	end
+
+	local slotValue = pPlayerConfig:GetValue("Mirror_PlayerSlot") or MIRROR_SLOT_AUTO;
+	if not IsMirrorSlotValueAvailable(slotValue) then
+		return MIRROR_SLOT_AUTO;
+	end
+
+	return slotValue;
+end
+
+local function GetMirrorSlotDisplayText(slotValue:string)
+	local tag = MIRROR_SLOT_LABELS[slotValue] or MIRROR_SLOT_LABELS[MIRROR_SLOT_AUTO];
+	return Locale.Lookup(tag);
+end
+
+local function SetMirrorSlotValue(playerID:number, slotValue:string)
+	local pPlayerConfig = PlayerConfigurations[playerID];
+	if pPlayerConfig == nil then
+		return;
+	end
+
+	slotValue = slotValue or MIRROR_SLOT_AUTO;
+	if not IsMirrorSlotValueAvailable(slotValue) then
+		slotValue = MIRROR_SLOT_AUTO;
+	end
+
+	pPlayerConfig:SetValue("Mirror_PlayerSlot", slotValue);
+	Network.BroadcastPlayerInfo(playerID);
+end
+
+local function RefreshMirrorSlotPulldown(playerID:number, control:table)
+	if control == nil then
+		return;
+	end
+
+	local slotValue = GetMirrorSlotValue(playerID);
+	local button = control:GetButton();
+	if button ~= nil then
+		button:SetText(GetMirrorSlotDisplayText(slotValue));
+		button:SetToolTipString(Locale.Lookup(MIRROR_SLOT_TOOLTIPS[slotValue] or MIRROR_SLOT_TOOLTIPS[MIRROR_SLOT_AUTO]));
+	end
+end
+
+local function SetupMirrorSlotPulldown(playerID:number, control:table)
+	if control == nil then
+		return;
+	end
+
+	control:ClearEntries();
+	for _, slotValue in ipairs(GetMirrorAvailableSlotValues()) do
+		local entry:table = {};
+		control:BuildEntry("InstanceOne", entry);
+		entry.Button:SetText(GetMirrorSlotDisplayText(slotValue));
+		entry.Button:SetToolTipString(Locale.Lookup(MIRROR_SLOT_TOOLTIPS[slotValue] or MIRROR_SLOT_TOOLTIPS[MIRROR_SLOT_AUTO]));
+		entry.Button:RegisterCallback(Mouse.eLClick, function()
+			SetMirrorSlotValue(playerID, slotValue);
+			RefreshMirrorSlotPulldown(playerID, control);
+		end);
+		entry.Button:SetDisabled(false);
+		entry.Button:SetHide(false);
+		entry.Root:SetHide(false);
+		entry.Root:SetDisabled(false);
+	end
+	control:CalculateInternals();
+	RefreshMirrorSlotPulldown(playerID, control);
+end
+
+local function UpdateMirrorSlotPulldown(playerID:number, control:table, isDisabled:boolean)
+	if control == nil then
+		return;
+	end
+
+	SetupMirrorSlotPulldown(playerID, control);
+	control:SetDisabled(isDisabled);
+
+	local button = control:GetButton();
+	if button ~= nil then
+		button:SetDisabled(isDisabled);
+	end
+end
+
+local function ShouldShowPlayerSlotSettingControl(playerID:number)
+	local pPlayerConfig = PlayerConfigurations[playerID];
+	if pPlayerConfig == nil then
+		return false;
+	end
+
+	local slotStatus = pPlayerConfig:GetSlotStatus();
+	local isMinorCiv = pPlayerConfig:GetCivilizationLevelTypeID() ~= CivilizationLevelTypes.CIVILIZATION_LEVEL_FULL_CIV;
+	local localPlayerID = Network.GetLocalPlayerID();
+	local isAlive = pPlayerConfig:IsAlive();
+
+	return not isMinorCiv
+		and slotStatus ~= SlotStatus.SS_CLOSED
+		and slotStatus ~= SlotStatus.SS_OPEN
+		and slotStatus ~= SlotStatus.SS_OBSERVER
+		and (isAlive or (GameConfiguration.IsPlayByCloud() and playerID == localPlayerID));
+end
+
+local function UpdatePlayerSlotSettingPulldown(playerID:number, playerEntry:table, showControl:boolean, isDisabled:boolean)
+	if playerEntry == nil then
+		return;
+	end
+
+	local handicapPulldown = playerEntry.HandicapPullDown;
+	local mirrorPulldown = playerEntry.MirrorSlotPullDown;
+	if handicapPulldown == nil or mirrorPulldown == nil then
+		return;
+	end
+
+	if not showControl then
+		handicapPulldown:SetHide(true);
+		mirrorPulldown:SetHide(true);
+		return;
+	end
+
+	local showMirrorSlot = CanUseMirrorSlot(playerID);
+	handicapPulldown:SetHide(showMirrorSlot);
+	mirrorPulldown:SetHide(not showMirrorSlot);
+	if showMirrorSlot then
+		UpdateMirrorSlotPulldown(playerID, mirrorPulldown, isDisabled);
+		return;
+	end
+
+	handicapPulldown:SetDisabled(isDisabled);
+	local handicapButton = handicapPulldown:GetButton();
+	if handicapButton ~= nil then
+		handicapButton:SetDisabled(isDisabled);
+	end
+end
 					   
 -- end						
 local m_playerTarget = { targetType = ChatTargetTypes.CHATTARGET_ALL, targetID = GetNoPlayerTargetID() };
@@ -488,6 +710,9 @@ function OnGameConfigChanged()
 	end
 	OnMapMaxMajorPlayersChanged(MapConfiguration.GetMaxMajorPlayers());	
 	OnMapMinMajorPlayersChanged(MapConfiguration.GetMinMajorPlayers());
+	if(ContextPtr:IsHidden() == false) then
+		UpdateAllPlayerEntries();
+	end
 end
 
 -------------------------------------------------
@@ -961,7 +1186,7 @@ function PlayerEntryVisibility()
 			playerEntry.TeamPullDown:SetDisabled(true)
 			playerEntry.ColorPullDown:SetHide(true)
 			playerEntry.PlayerPullDown:SetHide(true)
-			playerEntry.HandicapPullDown:SetHide(true)
+			UpdatePlayerSlotSettingPulldown(iPlayer, playerEntry, false, true)
 			playerEntry.StatusLabel:SetHide(true)
 			playerEntry.ReadyImage:SetHide(true)
 			playerEntry.AddPlayerButton:SetSizeX(285)
@@ -988,6 +1213,7 @@ function PlayerEntryVisibility()
 			local playerEntry = g_PlayerEntries[iPlayer]
 			if playerEntry ~= nil then
 			local button = playerEntry.SlotTypePulldown:GetButton()
+			local showSlotSetting = ShouldShowPlayerSlotSettingControl(iPlayer)
 			button:SetHide(false)
 			playerEntry.AddPlayerButton:SetSizeX(1000)
 			playerEntry.SlotTypePulldown:SetDisabled(false)
@@ -1001,7 +1227,7 @@ function PlayerEntryVisibility()
 				playerEntry.ColorPullDown:SetDisabled(false)
 				playerEntry.PlayerPullDown:SetDisabled(false)			
 			end
-			playerEntry.HandicapPullDown:SetHide(false)
+			UpdatePlayerSlotSettingPulldown(iPlayer, playerEntry, showSlotSetting, g_disabled_slot_settings)
 			playerEntry.StatusLabel:SetHide(false)
 			playerEntry.ReadyImage:SetHide(false)
 			if localID == iPlayer then
@@ -1052,7 +1278,7 @@ function PlayerEntryVisibility()
 				playerEntry.YouIndicatorLine:SetSizeX(628) 
 				playerEntry.YouIndicatorLine:SetHide(true) 
 			end
-			playerEntry.HandicapPullDown:SetHide(true)
+			UpdatePlayerSlotSettingPulldown(iPlayer, playerEntry, false, true)
 			playerEntry.StatusLabel:SetHide(true)
 			playerEntry.ReadyImage:SetHide(true)
 			end
@@ -5238,6 +5464,7 @@ function OnHandleExitRequest()
 		playerEntry.TeamPullDown:ForceClose();
 		playerEntry.PlayerPullDown:ForceClose();
 		playerEntry.HandicapPullDown:ForceClose();
+		playerEntry.MirrorSlotPullDown:ForceClose();
 	end
 
 	-- Destroy setup parameters.
@@ -5278,6 +5505,7 @@ function GetPlayerEntry(playerID)
 		SetupSplitLeaderPulldown(playerID, playerEntry,"PlayerPullDown",nil,nil,civTooltipData);
 		SetupTeamPulldown(playerID, playerEntry.TeamPullDown);
 		SetupHandicapPulldown(playerID, playerEntry.HandicapPullDown);
+		SetupMirrorSlotPulldown(playerID, playerEntry.MirrorSlotPullDown);
 
 		--playerEntry.PlayerCard:RegisterCallback( Mouse.eLClick, OnSwapButton );
 		--playerEntry.PlayerCard:SetVoid1(playerID);
@@ -5589,13 +5817,7 @@ function UpdatePlayerEntry(playerID)
 		local slotStatus = pPlayerConfig:GetSlotStatus();
 		local isMinorCiv = pPlayerConfig:GetCivilizationLevelTypeID() ~= CivilizationLevelTypes.CIVILIZATION_LEVEL_FULL_CIV;
 		local isAlive = pPlayerConfig:IsAlive();
-		local isActiveSlot = not isMinorCiv 
-			and (slotStatus ~= SlotStatus.SS_CLOSED) 
-			and (slotStatus ~= SlotStatus.SS_OPEN) 
-			and (slotStatus ~= SlotStatus.SS_OBSERVER)											 
-			-- In PlayByCloud, the local player still gets an active slot even if they are dead.  We do this so that players
-			--		can rejoin the match to see the end game screen,
-			and (isAlive or (GameConfiguration.IsPlayByCloud() and playerID == localPlayerID));
+		local isActiveSlot = ShouldShowPlayerSlotSettingControl(playerID);
 		local isHotSeat:boolean = GameConfiguration.IsHotseat();
 		
 		-- Has this game aleady been started?  Hot joining or loading a save game.
@@ -5754,12 +5976,13 @@ function UpdatePlayerEntry(playerID)
 			playerEntry.PlayerPullDown:SetHide(false);
 			playerEntry.ReadyImage:SetHide(isHotSeat);
 			playerEntry.TeamPullDown:SetHide(false);
-			playerEntry.HandicapPullDown:SetHide(false);
+			UpdatePlayerSlotSettingPulldown(playerID, playerEntry, true, g_disabled_slot_settings);
 			playerEntry.KickButton:SetHide(not isKickable);
 		else
 			if(playerID >= g_currentMaxPlayers) then
 				-- inactive slot is invalid for the current map size, hide it.
 				playerEntry.Root:SetHide(true);
+				UpdatePlayerSlotSettingPulldown(playerID, playerEntry, false, true);
 			elseif slotStatus == SlotStatus.SS_CLOSED then
 				
 				if (m_iFirstClosedSlot == -1 or m_iFirstClosedSlot == playerID) 
@@ -5774,12 +5997,13 @@ function UpdatePlayerEntry(playerID)
 				else
 					playerEntry.Root:SetHide(true);
 				end
+				UpdatePlayerSlotSettingPulldown(playerID, playerEntry, false, true);
 			elseif slotStatus == SlotStatus.SS_OBSERVER and Network.IsPlayerConnected(playerID) then
 				playerEntry.Root:SetHide(false);
 				playerEntry.PlayerPullDown:SetHide(true);
 				playerEntry.TeamPullDown:SetHide(true);
 				playerEntry.ReadyImage:SetHide(false);
-				playerEntry.HandicapPullDown:SetHide(true);
+				UpdatePlayerSlotSettingPulldown(playerID, playerEntry, false, true);
 				playerEntry.KickButton:SetHide(not isKickable);																						   												   
 			else 
 				if(gameInProgress
@@ -5789,13 +6013,14 @@ function UpdatePlayerEntry(playerID)
 					or (slotStatus == SlotStatus.SS_COMPUTER and isMinorCiv)) then
 					-- Hide inactive slots for games in progress
 					playerEntry.Root:SetHide(true);
+					UpdatePlayerSlotSettingPulldown(playerID, playerEntry, false, true);
 				else
 					-- Inactive slots are visible in the pregame.
 					playerEntry.Root:SetHide(false);
 					playerEntry.PlayerPullDown:SetHide(true);
 					playerEntry.TeamPullDown:SetHide(true);
 					playerEntry.ReadyImage:SetHide(true);
-					playerEntry.HandicapPullDown:SetHide(true);
+					UpdatePlayerSlotSettingPulldown(playerID, playerEntry, false, true);
 					playerEntry.KickButton:SetHide(true);
 				end
 			end
@@ -7576,9 +7801,3 @@ function Initialize()
 end
 
 Initialize();
-
-
-
-
-
-
