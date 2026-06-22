@@ -31,6 +31,7 @@ local m_shellTabIM:table = InstanceManager:new("ShellTab", "TopControl", Control
 local m_kPopupDialog:table;
 local m_pCityStateWarningPopup:table = PopupDialog:new("CityStateWarningPopup");
 local MIRROR_PREVIEW_KEY:string = "MirrorMapDemo_LastPreview";
+local MIRROR_PREVIEW_FILE:string = "ModUserData/MirrorMapDemo_LastPreview.json";
 local m_InSession = false
 local m_Preset = -1;
 local b_visible = false;
@@ -69,20 +70,39 @@ local function NormalizeMapScriptValue(mapScript)
 end
 
 local function HasMirrorPreviewSnapshot()
-	if UserConfiguration == nil or UserConfiguration.GetValue == nil then
-		return false;
+	if UserConfiguration ~= nil and UserConfiguration.GetValue ~= nil then
+		local raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
+		if raw ~= nil and raw ~= "" then
+			return true;
+		end
 	end
 
-	local raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
-	return raw ~= nil and raw ~= "";
+	local file = io.open(MIRROR_PREVIEW_FILE, "r");
+	if file ~= nil then
+		file:close();
+		return true;
+	end
+	return false;
 end
 
 local function LoadMirrorPreviewSnapshot()
-	if not HasMirrorPreviewSnapshot() then
+	local raw = nil;
+	if UserConfiguration ~= nil and UserConfiguration.GetValue ~= nil then
+		raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
+	end
+	if raw == nil or raw == "" then
+		local file = io.open(MIRROR_PREVIEW_FILE, "r");
+		if file ~= nil then
+			raw = file:read("*a");
+			file:close();
+			print("LoadMirrorPreviewSnapshot: read from file, len=", (raw and #raw or 0));
+		end
+	end
+	if raw == nil or raw == "" then
+		print("LoadMirrorPreviewSnapshot: no snapshot found");
 		return nil;
 	end
-
-	local raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
+	print("LoadMirrorPreviewSnapshot: raw len=", #raw);
 	return {
 		MapScript = NormalizeMapScriptValue(MatchStringField(raw, "MapScript") or "Mirror.lua"),
 		MapSize = MatchNumberField(raw, "MapSize") or MapConfiguration.GetMapSize(),
