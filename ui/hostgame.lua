@@ -192,46 +192,65 @@ end
 local m_LastAutoAppliedJson = nil;
 
 function AutoApplyMirrorPreviewSnapshotIfMatch()
+	print("AutoApply: === START ===");
+
 	local hostID = Network.GetGameHostPlayerID();
 	local localID = Network.GetLocalPlayerID();
-	if Network.IsInSession() and hostID ~= localID then
+	local isInSession = Network.IsInSession();
+	print("AutoApply: isInSession=", tostring(isInSession), "hostID=", tostring(hostID), "localID=", tostring(localID));
+	if isInSession and hostID ~= localID then
+		print("AutoApply: skip (not host)");
 		return;
 	end
 
 	local mapScript = MapConfiguration.GetValue("MAP_SCRIPT");
+	print("AutoApply: MAP_SCRIPT=", tostring(mapScript));
 	if mapScript == nil or string.find(tostring(mapScript), "Mirror%.lua") == nil then
+		print("AutoApply: skip (not Mirror map)");
 		return;
 	end
 
 	local mirrorMode = tonumber(MapConfiguration.GetValue("Mirror_Mode") or 1);
+	print("AutoApply: Mirror_Mode=", tostring(mirrorMode));
 	if mirrorMode ~= 2 then
+		print("AutoApply: skip (Mirror_Mode != 2)");
 		return;
 	end
 
-	if not HasMirrorPreviewSnapshot() then
+	local hasSnapshot = HasMirrorPreviewSnapshot();
+	print("AutoApply: HasMirrorPreviewSnapshot=", tostring(hasSnapshot));
+	if not hasSnapshot then
+		print("AutoApply: skip (no snapshot)");
 		return;
 	end
 
 	local snapshot = LoadMirrorPreviewSnapshot();
+	print("AutoApply: LoadMirrorPreviewSnapshot result=", tostring(snapshot ~= nil));
 	if snapshot == nil then
+		print("AutoApply: skip (snapshot nil)");
 		return;
 	end
+
+	print("AutoApply: snapshot RandomSeed=", tostring(snapshot.RandomSeed), "GameSyncSeed=", tostring(snapshot.GameSyncSeed));
 
 	-- 防抖：避免 OnShow 反复触发时重复回填同一份快照
 	local fingerprint = tostring(snapshot.RandomSeed) .. "_" .. tostring(snapshot.GameSyncSeed);
 	if m_LastAutoAppliedJson == fingerprint then
-		print("AutoApplyMirrorPreviewSnapshotIfMatch: skip (already applied seed=" .. fingerprint .. ")");
+		print("AutoApply: skip (already applied seed=" .. fingerprint .. ")");
 		return;
 	end
 
 	ApplyMirrorPreviewSnapshot(snapshot);
+	print("AutoApply: ApplyMirrorPreviewSnapshot done, RANDOM_SEED now=", tostring(MapConfiguration.GetValue("RANDOM_SEED")));
+
 	if Network.IsInSession() then
 		Network.BroadcastGameConfig();
+		print("AutoApply: BroadcastGameConfig sent");
 	end
 	GameSetup_RefreshParameters();
 	Refresh();
 	m_LastAutoAppliedJson = fingerprint;
-	print("AutoApplyMirrorPreviewSnapshotIfMatch: applied seed=" .. fingerprint .. " slots=" .. tostring(#(snapshot.Slots or {})));
+	print("AutoApply: === DONE seed=" .. fingerprint .. " ===");
 end
 
 function OnLoadPreviewConfig()
