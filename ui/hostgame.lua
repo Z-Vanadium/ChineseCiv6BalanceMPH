@@ -210,13 +210,8 @@ function AutoApplyMirrorPreviewSnapshotIfMatch()
 		return;
 	end
 
-	local mirrorMode = tonumber(MapConfiguration.GetValue("Mirror_Mode") or 1);
-	print("AutoApply: Mirror_Mode=", tostring(mirrorMode));
-	if mirrorMode ~= 2 then
-		print("AutoApply: skip (Mirror_Mode != 2)");
-		return;
-	end
-
+	-- 不再检查 Mirror_Mode：只要快照存在就回填 seed + 参数。
+	-- 预览局阶段快照还没写入，HasMirrorPreviewSnapshot 会返回 false，不影响预览局。
 	local hasSnapshot = HasMirrorPreviewSnapshot();
 	print("AutoApply: HasMirrorPreviewSnapshot=", tostring(hasSnapshot));
 	if not hasSnapshot then
@@ -233,10 +228,19 @@ function AutoApplyMirrorPreviewSnapshotIfMatch()
 
 	print("AutoApply: snapshot RandomSeed=", tostring(snapshot.RandomSeed), "GameSyncSeed=", tostring(snapshot.GameSyncSeed));
 
-	-- 防抖：避免 OnShow 反复触发时重复回填同一份快照
+	-- 防抖：避免 OnShow / Refresh 反复触发时重复回填同一份快照
 	local fingerprint = tostring(snapshot.RandomSeed) .. "_" .. tostring(snapshot.GameSyncSeed);
 	if m_LastAutoAppliedJson == fingerprint then
 		print("AutoApply: skip (already applied seed=" .. fingerprint .. ")");
+		return;
+	end
+
+	-- 如果当前 RANDOM_SEED 已经等于快照的 seed，说明已经回填过了，跳过
+	local currentSeed = MapConfiguration.GetValue("RANDOM_SEED");
+	print("AutoApply: current RANDOM_SEED=", tostring(currentSeed), "snapshot seed=", tostring(snapshot.RandomSeed));
+	if currentSeed ~= nil and tonumber(currentSeed) == tonumber(snapshot.RandomSeed) then
+		print("AutoApply: skip (seed already matches)");
+		m_LastAutoAppliedJson = fingerprint;
 		return;
 	end
 
@@ -684,6 +688,8 @@ function Refresh()
 		end
 	end
 	end
+	-- 每次 Refresh 也尝试回填快照（OnShow 只触发一次，Refresh 触发更频繁）
+	AutoApplyMirrorPreviewSnapshotIfMatch();
 end
 
 
