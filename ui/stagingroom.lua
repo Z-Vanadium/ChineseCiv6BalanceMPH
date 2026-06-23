@@ -178,6 +178,82 @@ local function IsMirrorMapActive()
 	return NormalizeMapScriptValue(MapConfiguration.GetValue("MAP_SCRIPT")) == "Mirror.lua";
 end
 
+-- ============================================================================
+-- Mirror 预览快照自动回填（与 hostgame.lua 中 AutoApplyMirrorPreviewSnapshotIfMatch
+-- 等价）：当玩家在 Stagingroom 切换 Mirror_Mode 到 Match 时，
+-- 从 UserConfiguration 读取预览快照并把 seed + Mirror 参数写回配置流。
+-- 这样下一次开局时引擎读到的就是预览局的 seed，保证地图一致。
+-- ============================================================================
+local MIRROR_STAGING_SNAPSHOT_KEY:string = "MirrorMapDemo_LastPreview";
+local m_LastStagingAutoAppliedFingerprint = nil;
+
+local function MirrorStagingMatchNumber(source:string, key:string)
+	local matched = string.match(source, '"' .. key .. '":(-?%d+)');
+	return matched ~= nil and tonumber(matched) or nil;
+end
+
+local function MirrorStagingMatchString(source:string, key:string)
+	return string.match(source, '"' .. key .. '":"([^"]*)"');
+end
+
+local function MirrorStagingApplyFromUserConfiguration()
+	if UserConfiguration == nil or UserConfiguration.GetValue == nil then
+		return;
+	end
+	if not IsMirrorMapActive() then
+		return;
+	end
+	local mirrorMode = tonumber(MapConfiguration.GetValue("Mirror_Mode") or 1);
+	if mirrorMode ~= 2 then
+		return;
+	end
+
+	local raw = UserConfiguration.GetValue(MIRROR_STAGING_SNAPSHOT_KEY);
+	if raw == nil or raw == "" then
+		return;
+	end
+
+	local randomSeed   = MirrorStagingMatchNumber(raw, "RandomSeed");
+	local gameSyncSeed = MirrorStagingMatchNumber(raw, "GameSyncSeed");
+	if randomSeed == nil or gameSyncSeed == nil then
+		print("MirrorStagingApply: snapshot missing seed fields");
+		return;
+	end
+
+	local fingerprint = tostring(randomSeed) .. "_" .. tostring(gameSyncSeed);
+	if m_LastStagingAutoAppliedFingerprint == fingerprint then
+		return;
+	end
+
+	local worldAge   = MirrorStagingMatchNumber(raw, "WorldAge");
+	local temp       = MirrorStagingMatchNumber(raw, "Temperature");
+	local rainfall   = MirrorStagingMatchNumber(raw, "Rainfall");
+	local seaLevel   = MirrorStagingMatchNumber(raw, "SeaLevel");
+	local resources  = MirrorStagingMatchNumber(raw, "Resources");
+	local teamSpawn  = MirrorStagingMatchNumber(raw, "TeamSpawn");
+	local mapSize    = MirrorStagingMatchNumber(raw, "MapSize");
+
+	if mapSize ~= nil and MapConfiguration.SetMapSize ~= nil then
+		MapConfiguration.SetMapSize(mapSize);
+	end
+	if worldAge  ~= nil then MapConfiguration.SetValue("world_age",     worldAge);   end
+	if temp      ~= nil then MapConfiguration.SetValue("temperature",   temp);       end
+	if rainfall  ~= nil then MapConfiguration.SetValue("rainfall",      rainfall);   end
+	if seaLevel  ~= nil then MapConfiguration.SetValue("sea_level",     seaLevel);   end
+	if resources ~= nil then MapConfiguration.SetValue("resources",     resources);  end
+	if teamSpawn ~= nil then MapConfiguration.SetValue("BBM_Team_Spawn", teamSpawn); end
+
+	MapConfiguration.SetValue("RANDOM_SEED",            randomSeed);
+	GameConfiguration.SetValue("GAME_SYNC_RANDOM_SEED", gameSyncSeed);
+
+	m_LastStagingAutoAppliedFingerprint = fingerprint;
+	print("MirrorStagingApply: applied seed=" .. fingerprint .. " worldAge=" .. tostring(worldAge));
+
+	if Network ~= nil and Network.BroadcastGameConfig ~= nil then
+		Network.BroadcastGameConfig();
+	end
+end
+
 local function IsMirrorGenerationEnabled()
 	local enabled = GameConfiguration.GetValue("MIRROR_ENABLED");
 	local enabledText = tostring(enabled);
@@ -689,6 +765,7 @@ end
 -- OnGameConfigChanged
 -------------------------------------------------
 function OnGameConfigChanged()
+	MirrorStagingApplyFromUserConfiguration();
 	Refresh()	  
 	if(ContextPtr:IsHidden() == false) then
 		RealizeGameSetup(); -- Rebuild the game settings UI.
