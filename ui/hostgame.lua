@@ -186,6 +186,54 @@ local function UpdateMirrorPreviewButton()
 	print("UpdateMirrorPreviewButton: isMirrorMap=", tostring(isMirrorMap), "hasSnapshot=", tostring(hasSnapshot));
 end
 
+-- 在 OnShow 时自动复用预览快照（仅当 Mirror_Mode = Match 且快照存在时）。
+-- 不依赖 Mirror_Mode 下拉框的 OnChange 回调（之前测试该 hook 未触发），
+-- 而是利用每次进入 Host Lobby 都必然执行 OnShow 这个事实。
+local m_LastAutoAppliedJson = nil;
+
+function AutoApplyMirrorPreviewSnapshotIfMatch()
+	local hostID = Network.GetGameHostPlayerID();
+	local localID = Network.GetLocalPlayerID();
+	if Network.IsInSession() and hostID ~= localID then
+		return;
+	end
+
+	local mapScript = MapConfiguration.GetValue("MAP_SCRIPT");
+	if mapScript == nil or string.find(tostring(mapScript), "Mirror%.lua") == nil then
+		return;
+	end
+
+	local mirrorMode = tonumber(MapConfiguration.GetValue("Mirror_Mode") or 1);
+	if mirrorMode ~= 2 then
+		return;
+	end
+
+	if not HasMirrorPreviewSnapshot() then
+		return;
+	end
+
+	local snapshot = LoadMirrorPreviewSnapshot();
+	if snapshot == nil then
+		return;
+	end
+
+	-- 防抖：避免 OnShow 反复触发时重复回填同一份快照
+	local fingerprint = tostring(snapshot.RandomSeed) .. "_" .. tostring(snapshot.GameSyncSeed);
+	if m_LastAutoAppliedJson == fingerprint then
+		print("AutoApplyMirrorPreviewSnapshotIfMatch: skip (already applied seed=" .. fingerprint .. ")");
+		return;
+	end
+
+	ApplyMirrorPreviewSnapshot(snapshot);
+	if Network.IsInSession() then
+		Network.BroadcastGameConfig();
+	end
+	GameSetup_RefreshParameters();
+	Refresh();
+	m_LastAutoAppliedJson = fingerprint;
+	print("AutoApplyMirrorPreviewSnapshotIfMatch: applied seed=" .. fingerprint .. " slots=" .. tostring(#(snapshot.Slots or {})));
+end
+
 function OnLoadPreviewConfig()
 	local hostID = Network.GetGameHostPlayerID();
 	local localID = Network.GetLocalPlayerID();
@@ -634,6 +682,7 @@ function OnShow()
 	ShowDefaultButton();
 	ShowLoadConfigButton();
 	UpdateMirrorPreviewButton();
+	AutoApplyMirrorPreviewSnapshotIfMatch();
 	Controls.LoadButton:SetHide(not GameConfiguration.IsHotseat() or isInSession);
 	Controls.RefreshConfigButton:SetHide(not isInSession);
 	--[[
