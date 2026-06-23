@@ -70,39 +70,43 @@ local function NormalizeMapScriptValue(mapScript)
 end
 
 local function HasMirrorPreviewSnapshot()
+	if GameConfiguration ~= nil and GameConfiguration.GetValue ~= nil then
+		local raw = GameConfiguration.GetValue(MIRROR_PREVIEW_KEY);
+		if raw ~= nil and raw ~= "" then
+			return true;
+		end
+	end
 	if UserConfiguration ~= nil and UserConfiguration.GetValue ~= nil then
 		local raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
 		if raw ~= nil and raw ~= "" then
 			return true;
 		end
 	end
-
-	local file = io.open(MIRROR_PREVIEW_FILE, "r");
-	if file ~= nil then
-		file:close();
-		return true;
-	end
 	return false;
 end
 
 local function LoadMirrorPreviewSnapshot()
 	local raw = nil;
-	if UserConfiguration ~= nil and UserConfiguration.GetValue ~= nil then
-		raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
+	if GameConfiguration ~= nil and GameConfiguration.GetValue ~= nil then
+		raw = GameConfiguration.GetValue(MIRROR_PREVIEW_KEY);
+		if raw ~= nil and raw ~= "" then
+			print("LoadMirrorPreviewSnapshot: from GameConfiguration, len=", #raw);
+		else
+			raw = nil;
+		end
 	end
-	if raw == nil or raw == "" then
-		local file = io.open(MIRROR_PREVIEW_FILE, "r");
-		if file ~= nil then
-			raw = file:read("*a");
-			file:close();
-			print("LoadMirrorPreviewSnapshot: read from file, len=", (raw and #raw or 0));
+	if raw == nil and UserConfiguration ~= nil and UserConfiguration.GetValue ~= nil then
+		raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
+		if raw ~= nil and raw ~= "" then
+			print("LoadMirrorPreviewSnapshot: from UserConfiguration, len=", #raw);
+		else
+			raw = nil;
 		end
 	end
 	if raw == nil or raw == "" then
 		print("LoadMirrorPreviewSnapshot: no snapshot found");
 		return nil;
 	end
-	print("LoadMirrorPreviewSnapshot: raw len=", #raw);
 	return {
 		MapScript = NormalizeMapScriptValue(MatchStringField(raw, "MapScript") or "Mirror.lua"),
 		MapSize = MatchNumberField(raw, "MapSize") or MapConfiguration.GetMapSize(),
