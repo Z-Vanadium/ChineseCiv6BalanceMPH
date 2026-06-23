@@ -1,6 +1,7 @@
 ----------------------------------------------------------------  
 -- Staging Room Screen
 ----------------------------------------------------------------  
+print("[MPH_STAGINGROOM_LOAD_CHECK] CCB MPH stagingroom.lua FILE LOADED ===========");
 include( "InstanceManager" );	--InstanceManager
 include( "PlayerSetupLogic" );
 include( "NetworkUtilities" );
@@ -245,6 +246,9 @@ local function MirrorStagingApplyFromUserConfiguration()
 
 	MapConfiguration.SetValue("RANDOM_SEED",            randomSeed);
 	GameConfiguration.SetValue("GAME_SYNC_RANDOM_SEED", gameSyncSeed);
+
+	-- 把完整快照 JSON 也写入 GameConfiguration，让地图脚本 (InGame map context) 能读到
+	GameConfiguration.SetValue("MirrorMapDemo_LastPreview", raw);
 
 	m_LastStagingAutoAppliedFingerprint = fingerprint;
 	print("MirrorStagingApply: applied seed=" .. fingerprint .. " worldAge=" .. tostring(worldAge));
@@ -765,6 +769,7 @@ end
 -- OnGameConfigChanged
 -------------------------------------------------
 function OnGameConfigChanged()
+	print("StagingRoom: OnGameConfigChanged triggered");
 	MirrorStagingApplyFromUserConfiguration();
 	Refresh()	  
 	if(ContextPtr:IsHidden() == false) then
