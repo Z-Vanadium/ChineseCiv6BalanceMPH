@@ -1361,6 +1361,7 @@ function Initialize()
 	Events.LeaveGameComplete.Add( OnLeaveGameComplete );
 	Events.BeforeMultiplayerInviteProcessing.Add( OnBeforeMultiplayerInviteProcessing );
 	Events.GameConfigChanged.Add(CheckPreset);
+	Events.GameConfigChanged.Add(AutoApplyMirrorPreviewSnapshotIfMatch);
 	
 	LuaEvents.ChangeMPLobbyMode.Add( OnChangeMPLobbyMode );
 	LuaEvents.GameDebug_Return.Add(OnGameDebugReturn);
