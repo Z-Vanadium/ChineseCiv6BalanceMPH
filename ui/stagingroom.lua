@@ -259,9 +259,6 @@ end
 
 local b_mods_ok = false
 
--- Debug配置：是否将AI玩家纳入modcheck检查范围
-local DEBUG_CHECK_AI = false  -- 设置为true可在debug模式下检查AI玩家
-
 
 local g_cached_playerIDs = {}
 local g_map_pool = {}
@@ -888,24 +885,14 @@ function ResetStatus()
 				table.insert(g_player_status, tmp)					
 			end
 		else
-			local ai_status = -1  -- 默认AI玩家不参与检查
-			local ai_version = g_version
-			if DEBUG_CHECK_AI then
-				ai_status = 0  -- Debug模式下AI玩家也参与检查
-				ai_version = 0
-			end
-			local tmp = { ID = iPlayer, Status = ai_status, Version = ai_version, Name = "AI"}
+			local tmp = { ID = iPlayer, Status = -1, Version = g_version, Name = "AI"}
 			-- Add version fields from config table
 			for _, config in ipairs(MOD_CHECK_CONFIG) do
 				if not config.no_version_check and config.id_field then
 					local mod_id = GetModId(config)
 					if mod_id then
 						tmp[config.id_field] = mod_id
-						if DEBUG_CHECK_AI then
-							tmp[config.version_field] = 0  -- Debug模式下等待版本检查
-						else
-							tmp[config.version_field] = local_versions[config.version_field] or 0
-						end
+						tmp[config.version_field] = local_versions[config.version_field] or 0
 					end
 				end
 			end
@@ -968,16 +955,6 @@ function RefreshStatus()
 	local hostID = Network.GetGameHostPlayerID()
 	b_tick = true
 	b_mods_ok = true
-	
-	-- Debug: 打印所有玩家状态
-	if DEBUG_CHECK_AI then
-		print("=== MOD CHECK DEBUG: RefreshStatus - All Players ===")
-		for i, player in pairs(g_player_status) do
-			print(string.format("  Player %d: Name=%s, Status=%d, Version=%s", 
-				player.ID, tostring(player.Name), player.Status, tostring(player.Version or "nil")))
-		end
-		print("=== END MOD CHECK DEBUG ===")
-	end
 	
 	if hostID == localID and IsMphEnabled() == true then
 		if g_player_status ~= nil and g_player_status ~= {} then
@@ -1089,7 +1066,6 @@ function OnModCheck()
 	print("Host Player ID: " .. tostring(hostID))
 	print("Is Host: " .. tostring(localID == hostID))
 	print("IsMphEnabled: " .. tostring(IsMphEnabled()))
-	print("DEBUG_CHECK_AI: " .. tostring(DEBUG_CHECK_AI))
 	print("Detected Mod IDs:")
 	for field, id in pairs(g_detected_mod_ids) do
 		local version = GetLocalModVersion(id)
