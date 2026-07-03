@@ -122,7 +122,10 @@ local b_clean = true
 --------------------------------------------
 local MOD_CHECK_CONFIG = {
 	{
-		ids = {"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20"},
+		ids = {
+			"8af4fe8e-3333-7d72-d9d6-a8f5d1b66e20",  -- 当前使用的UUID
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20",  -- 旧UUID（兼容）
+		},
 		flag = "b_mph_game",
 		version_field = "mph_version",
 		id_field = "mph_id",
