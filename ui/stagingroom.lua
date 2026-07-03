@@ -197,6 +197,39 @@ local function SetModId(config, id)
 	end
 end
 
+-- 运行时标志变量表（由BuildAdditionalContent设置）
+-- 通过GetModFlag(config)访问
+local g_mod_flags = {}  -- [flag_name] = true/false
+
+-- 辅助函数：获取模组标志
+local function GetModFlag(config)
+	return g_mod_flags[config.flag] or false
+end
+
+-- 辅助函数：设置模组标志
+local function SetModFlag(config, value)
+	g_mod_flags[config.flag] = value
+end
+
+-- 辅助函数：获取MPH模组配置
+local function GetMphConfig()
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		if config.is_mph then
+			return config
+		end
+	end
+	return nil
+end
+
+-- 辅助函数：检查MPH是否启用
+local function IsMphEnabled()
+	local mph_config = GetMphConfig()
+	if mph_config then
+		return GetModFlag(mph_config)
+	end
+	return false
+end
+
 local b_mods_ok = false
 
 
@@ -888,14 +921,14 @@ end
 
 function RefreshStatus()
 	print("RefreshStatus()",os.date("%c"),b_tick)
-	if GameConfiguration.GetGameState() ~= -901772834 or b_mph_game == false or m_countdownType =="Launch" or b_tick == true then
+	if GameConfiguration.GetGameState() ~= -901772834 or IsMphEnabled() == false or m_countdownType =="Launch" or b_tick == true then
 		return
 	end
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
 	b_tick = true
 	b_mods_ok = true
-	if hostID == localID and b_mph_game == true then
+	if hostID == localID and IsMphEnabled() == true then
 		if g_player_status ~= nil and g_player_status ~= {} then
 			for i, player in pairs(g_player_status) do
 				if Network.IsPlayerConnected(player.ID) == false and player.Status ~= -1 then
@@ -983,7 +1016,7 @@ end
 function SendVersion()
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
-	if localID ~= hostID and b_mph_game == true then
+	if localID ~= hostID and IsMphEnabled() == true then
 		-- Build version message dynamically from config table
 		local version_parts = {}
 		table.insert(version_parts, ".mph_ui_modversion_"..tostring(g_version))
@@ -7256,7 +7289,7 @@ function BuildAdditionalContent()
     
     -- Reset all mod flags from config table
     for _, config in ipairs(MOD_CHECK_CONFIG) do
-        _G[config.flag] = false
+        SetModFlag(config, false)
     end
     isCivPlayerName = false
     local count = 0
@@ -7286,7 +7319,7 @@ function BuildAdditionalContent()
             
             if is_match then
                 -- Set the mod flag
-                _G[config.flag] = true
+                SetModFlag(config, true)
                 
                 -- Store the detected mod ID
                 SetModId(config, curMod.Id)
