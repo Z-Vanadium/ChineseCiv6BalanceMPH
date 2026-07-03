@@ -179,6 +179,30 @@ local MOD_CHECK_CONFIG = {
 		color_tag = "[COLOR_LIGHTBLUE]",
 		no_version_check = true,
 	},
+	{
+		ids = {
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e66",  -- 多河地图包
+		},
+		flag = "b_rivers_map_game",
+		version_field = "rivers_map_v",
+		id_field = "rivers_map_id",
+		msg_tag = "_RIVERS_MAP_",
+		config_key = "MOD_RIVERS_MAP_ID",
+		display_name = "多河地图包",
+		color_tag = "[COLOR_LIGHTBLUE]",
+	},
+	{
+		ids = {
+			"f18dbeb4-c6d4-11f0-a869-743af48c7600",  -- 5566 万神殿扩展
+		},
+		flag = "b_panth_5566_game",
+		version_field = "panth_5566_v",
+		id_field = "panth_5566_id",
+		msg_tag = "_PANTH_5566_",
+		config_key = "MOD_PANTH_5566_ID",
+		display_name = "5566 万神殿扩展",
+		color_tag = "[COLOR_LIGHTBLUE]",
+	},
 }
 
 -- 运行时状态：检测到的模组ID（由BuildAdditionalContent填充）
@@ -1774,12 +1798,12 @@ function Refresh()
 	if string.len(g_refreshing) > 30 then
 		g_refreshing = "Refreshing"
 	end	
-	-- Reset all mod configuration values
-	GameConfiguration.SetValue("MOD_BSM_ID",false)
-	GameConfiguration.SetValue("MOD_BBS_ID",false)
-	GameConfiguration.SetValue("MOD_BBG_ID",false)
-	GameConfiguration.SetValue("MOD_BBGE_ID",false)
-	GameConfiguration.SetValue("MOD_MPH_ID",false)
+	-- Reset all mod configuration values using config table
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		if config.config_key then
+			GameConfiguration.SetValue(config.config_key, false)
+		end
+	end
 	
 	local enabledMods = GameConfiguration.GetEnabledMods();
 	for _, curMod in ipairs(enabledMods) do
