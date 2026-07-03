@@ -103,25 +103,22 @@ local b_check = false
 local b_launch = false
 local b_clean = true
 --------------------------------------------
--- Mod Detection Configuration Table
+-- 模组检测配置表 (Mod Detection Configuration Table)
 --------------------------------------------
--- To add a new mod for version checking:
--- 1. Add an entry to MOD_CHECK_CONFIG with:
---    - ids: table of accepted mod UUIDs
---    - flag: boolean variable name (will be created dynamically)
---    - version_field: field name in player status for version tracking
---    - id_field: field name for storing detected mod ID
---    - msg_tag: tag in chat message for version exchange
---    - config_key: GameConfiguration key for storing mod presence
---    - display_name: human-readable name for error messages
---    - color_tag: optional color tag for UI display (default: "[COLOR_LIGHTBLUE]")
---    - is_mph: special flag for MPH (this mod)
---    - no_version_check: if true, skip version comparison
--- 2. The system will automatically:
---    - Detect the mod in BuildAdditionalContent()
---    - Track versions in ResetStatus() and RefreshStatusID()
---    - Compare versions in RefreshStatus()
---    - Send versions in SendVersion()
+-- 添加新模组只需在此表中增加一项，无需修改其他代码
+-- 系统会自动：检测模组、追踪版本、比较版本、发送版本
+--------------------------------------------
+-- 字段说明：
+-- ids              : 模组UUID列表（支持多个ID指向同一模组）
+-- flag             : 运行时布尔标志变量名，用于判断模组是否启用
+-- version_field    : 玩家状态表中的版本字段名，用于存储/比较版本号
+-- id_field         : 玩家状态表中的模组ID字段名，用于存储检测到的模组ID
+-- msg_tag          : 聊天消息中的版本分隔标签（如"_BBM_"），用于收发版本信息
+-- config_key       : GameConfiguration键名，用于在游戏配置中记录模组是否存在
+-- display_name     : 模组显示名称，用于错误消息提示
+-- color_tag        : UI颜色标签（可选，默认"[COLOR_LIGHTBLUE]"）
+-- is_mph           : 是否为MPH本体（特殊标记，MPH版本作为基准版本）
+-- no_version_check : 是否跳过版本检查（true则不比较版本号）
 --------------------------------------------
 local MOD_CHECK_CONFIG = {
 	{
@@ -146,9 +143,9 @@ local MOD_CHECK_CONFIG = {
 	},
 	{
 		ids = {
-			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00",
-			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05",
-			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e08",
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00",  -- CCB Base
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05",  -- CCB BETA
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e08",  -- CCB WIP
 		},
 		flag = "b_bbg_game",
 		version_field = "bbg_v",
@@ -181,11 +178,11 @@ local MOD_CHECK_CONFIG = {
 	},
 }
 
--- Runtime state: detected mod IDs (populated by BuildAdditionalContent)
--- Access via GetModId(config) helper
-local g_detected_mod_ids = {}  -- [id_field] = detected_mod_id
+-- 运行时状态：检测到的模组ID（由BuildAdditionalContent填充）
+-- 通过GetModId(config)访问
+local g_detected_mod_ids = {}  -- [id_field] = 检测到的模组ID
 
--- Helper: get detected mod ID for a config entry
+-- 辅助函数：获取配置项对应的检测到的模组ID
 local function GetModId(config)
 	if config.id_field then
 		return g_detected_mod_ids[config.id_field]
@@ -193,7 +190,7 @@ local function GetModId(config)
 	return nil
 end
 
--- Helper: set detected mod ID for a config entry
+-- 辅助函数：设置配置项对应的检测到的模组ID
 local function SetModId(config, id)
 	if config.id_field then
 		g_detected_mod_ids[config.id_field] = id
