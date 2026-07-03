@@ -945,6 +945,29 @@ function RefreshStatus()
 					b_mods_ok = false
 				end
 				if player.Status == 2 then
+					-- Debug: 打印接收到的版本信息
+					print("=== MOD CHECK DEBUG: RefreshStatus - Player " .. player.ID .. " ===")
+					print("Player Name: " .. tostring(player.Name))
+					print("Received Versions:")
+					print("  MPH: " .. tostring(player.Version))
+					for _, config in ipairs(MOD_CHECK_CONFIG) do
+						if not config.no_version_check and not config.is_mph and config.version_field then
+							print(string.format("  %s: %s", config.display_name, tostring(player[config.version_field] or "nil")))
+						end
+					end
+					print("Local Versions:")
+					print("  MPH: " .. tostring(g_version))
+					for _, config in ipairs(MOD_CHECK_CONFIG) do
+						if not config.no_version_check and not config.is_mph then
+							local mod_id = GetModId(config)
+							if mod_id then
+								local local_version = GetLocalModVersion(mod_id)
+								print(string.format("  %s: %s", config.display_name, tostring(local_version or "nil")))
+							end
+						end
+					end
+					print("=== END MOD CHECK DEBUG ===")
+					
 					-- Check MPH version first (special case)
 					if tostring(player.Version) ~= tostring(g_version) then
 						local msg_CCBError_MPH_Version = "[COLOR_Civ6Red]主机CCB助手版本: "..tostring(g_version).." Your version: "..tostring(player.Version)
@@ -958,7 +981,7 @@ function RefreshStatus()
 							local mod_id = GetModId(config)
 							
 							if mod_id then
-								local flag_value = _G[config.flag]
+								local flag_value = GetModFlag(config)
 								if flag_value == true and player[config.version_field] then
 									local local_version = GetLocalModVersion(mod_id)
 									if tostring(player[config.version_field]) ~= tostring(local_version) then
@@ -1008,6 +1031,24 @@ function OnModCheck()
 	print("OnModCheck()",os.date("%c"))
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
+	
+	-- Debug: 打印当前modcheck状态
+	print("=== MOD CHECK DEBUG: OnModCheck ===")
+	print("Local Player ID: " .. tostring(localID))
+	print("Host Player ID: " .. tostring(hostID))
+	print("Is Host: " .. tostring(localID == hostID))
+	print("IsMphEnabled: " .. tostring(IsMphEnabled()))
+	print("Detected Mod IDs:")
+	for field, id in pairs(g_detected_mod_ids) do
+		local version = GetLocalModVersion(id)
+		print(string.format("  %s = %s (version: %s)", field, tostring(id), tostring(version or "nil")))
+	end
+	print("Mod Flags:")
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		print(string.format("  %s = %s", config.flag, tostring(GetModFlag(config))))
+	end
+	print("=== END MOD CHECK DEBUG ===")
+	
 	b_mods_ok = false
 	g_player_status = {}
 	ResetStatus()
@@ -1033,6 +1074,26 @@ function SendVersion()
 		end
 		
 		local msg = table.concat(version_parts)
+		
+		-- Debug: 打印发送的版本信息
+		print("=== MOD CHECK DEBUG: SendVersion ===")
+		print("Sending to host: " .. tostring(hostID))
+		print("Message: " .. msg)
+		print("Versions:")
+		print("  MPH: " .. tostring(g_version))
+		for _, config in ipairs(MOD_CHECK_CONFIG) do
+			if not config.no_version_check and not config.is_mph then
+				local mod_id = GetModId(config)
+				if mod_id then
+					local version = GetLocalModVersion(mod_id)
+					print(string.format("  %s: %s (mod_id: %s)", config.display_name, tostring(version or "nil"), tostring(mod_id)))
+				else
+					print(string.format("  %s: NOT DETECTED", config.display_name))
+				end
+			end
+		end
+		print("=== END MOD CHECK DEBUG ===")
+		
 		Network.SendChat(msg, -2, hostID)
 	end
 end
@@ -7359,6 +7420,25 @@ function BuildAdditionalContent()
         
         modControl.ModTitle:SetText(modTitleStr);
     end
+
+    -- Debug: 打印所有检测到的模组信息
+    print("=== MOD CHECK DEBUG: BuildAdditionalContent ===")
+    print("Total enabled mods: " .. count)
+    for _, config in ipairs(MOD_CHECK_CONFIG) do
+        local flag_value = GetModFlag(config)
+        local mod_id = GetModId(config)
+        local version = nil
+        if mod_id then
+            version = GetLocalModVersion(mod_id)
+        end
+        print(string.format("  [%s] %s: flag=%s, id=%s, version=%s", 
+            config.display_name,
+            flag_value and "ENABLED" or "disabled",
+            tostring(flag_value),
+            tostring(mod_id or "nil"),
+            tostring(version or "nil")))
+    end
+    print("=== END MOD CHECK DEBUG ===")
 
     Controls.AdditionalContentStack:CalculateSize();
     Controls.ParametersScrollPanel:CalculateSize();
