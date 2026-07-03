@@ -110,8 +110,13 @@ local b_clean = true
 --    - ids: table of accepted mod UUIDs
 --    - flag: boolean variable name (will be created dynamically)
 --    - version_field: field name in player status for version tracking
+--    - id_field: field name for storing detected mod ID
+--    - msg_tag: tag in chat message for version exchange
+--    - config_key: GameConfiguration key for storing mod presence
 --    - display_name: human-readable name for error messages
 --    - color_tag: optional color tag for UI display (default: "[COLOR_LIGHTBLUE]")
+--    - is_mph: special flag for MPH (this mod)
+--    - no_version_check: if true, skip version comparison
 -- 2. The system will automatically:
 --    - Detect the mod in BuildAdditionalContent()
 --    - Track versions in ResetStatus() and RefreshStatusID()
@@ -123,28 +128,34 @@ local MOD_CHECK_CONFIG = {
 		ids = {"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20"},
 		flag = "b_mph_game",
 		version_field = "mph_version",
-		display_name = "MPH",
+		id_field = "mph_id",
+		config_key = "MOD_MPH_ID",
+		display_name = "CCB MPH",
 		color_tag = "[COLOR_LIGHTBLUE]",
-		is_mph = true,  -- special flag for MPH (this mod)
+		is_mph = true,
 	},
 	{
 		ids = {"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10"},
 		flag = "b_bbs_game",
 		version_field = "bbs_v",
 		id_field = "bbs_id",
-		display_name = "CCB Map (BBM)",
+		msg_tag = "_BBM_",
+		config_key = "MOD_BBS_ID",
+		display_name = "CCB Map",
 		color_tag = "[COLOR_LIGHTBLUE]",
 	},
 	{
 		ids = {
-			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00",  -- CCB Base
-			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05",  -- CCB BETA
-			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e08",  -- CCB WIP
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00",
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05",
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e08",
 		},
 		flag = "b_bbg_game",
 		version_field = "bbg_v",
 		id_field = "bbg_id",
-		display_name = "CCB Base (BBG)",
+		msg_tag = "_BBG_",
+		config_key = "MOD_BBG_ID",
+		display_name = "CCB Base",
 		color_tag = "[COLOR_LIGHTBLUE]",
 	},
 	{
@@ -152,7 +163,9 @@ local MOD_CHECK_CONFIG = {
 		flag = "b_bbge_game",
 		version_field = "bbge_v",
 		id_field = "bbge_id",
-		display_name = "CCB Expansion (BBGE)",
+		msg_tag = "_BBGE_",
+		config_key = "MOD_BBGE_ID",
+		display_name = "CCB Expansion",
 		color_tag = "[COLOR_LIGHTBLUE]",
 	},
 	{
@@ -161,42 +174,33 @@ local MOD_CHECK_CONFIG = {
 			"c6e5ad32-0600-4a98-a7cd-5854a1abcaaf",
 		},
 		flag = "b_spec_game",
+		config_key = "MOD_BSM_ID",
 		display_name = "BSMP/BSM (Spectator)",
 		color_tag = "[COLOR_LIGHTBLUE]",
-		no_version_check = true,  -- don't check versions for this mod
+		no_version_check = true,
 	},
 }
 
--- Dynamic mod flags (populated from MOD_CHECK_CONFIG)
-local b_mph_game = false;
-local b_spec_game = false;
-local b_bbge_game = false;
-local b_bbg_game = false;
-local b_bbs_game = false;
-local s_bbs_id = "";
-local s_bbg_id = "";
-local s_bbge_id = "";
+-- Runtime state: detected mod IDs (populated by BuildAdditionalContent)
+-- Access via GetModId(config) helper
+local g_detected_mod_ids = {}  -- [id_field] = detected_mod_id
+
+-- Helper: get detected mod ID for a config entry
+local function GetModId(config)
+	if config.id_field then
+		return g_detected_mod_ids[config.id_field]
+	end
+	return nil
+end
+
+-- Helper: set detected mod ID for a config entry
+local function SetModId(config, id)
+	if config.id_field then
+		g_detected_mod_ids[config.id_field] = id
+	end
+end
+
 local b_mods_ok = false
-
--- Helper function to find mod config by flag name
-local function GetModConfigByFlag(flag_name)
-	for _, config in ipairs(MOD_CHECK_CONFIG) do
-		if config.flag == flag_name then
-			return config
-		end
-	end
-	return nil
-end
-
--- Helper function to find mod config by version field
-local function GetModConfigByVersionField(version_field)
-	for _, config in ipairs(MOD_CHECK_CONFIG) do
-		if config.version_field == version_field then
-			return config
-		end
-	end
-	return nil
-end
 
 
 local g_cached_playerIDs = {}
@@ -675,16 +679,9 @@ function RefreshStatusID(playerID, version, bbs_version, bbg_version, bbge_versi
 	-- Get local versions for all tracked mods
 	local local_versions = {}
 	for _, config in ipairs(MOD_CHECK_CONFIG) do
-		if not config.no_version_check and config.id_field then
-			local mod_id = nil
-			if config.id_field == "bbs_id" then
-				mod_id = s_bbs_id
-			elseif config.id_field == "bbg_id" then
-				mod_id = s_bbg_id
-			elseif config.id_field == "bbge_id" then
-				mod_id = s_bbge_id
-			end
-			if mod_id and mod_id ~= "" then
+		if not config.no_version_check then
+			local mod_id = GetModId(config)
+			if mod_id then
 				local_versions[config.version_field] = GetLocalModVersion(mod_id)
 			end
 		end
@@ -694,15 +691,8 @@ function RefreshStatusID(playerID, version, bbs_version, bbg_version, bbge_versi
 	local function AddVersionFields(entry, is_host)
 		for _, config in ipairs(MOD_CHECK_CONFIG) do
 			if not config.no_version_check and config.id_field then
-				local mod_id = nil
-				if config.id_field == "bbs_id" then
-					mod_id = s_bbs_id
-				elseif config.id_field == "bbg_id" then
-					mod_id = s_bbg_id
-				elseif config.id_field == "bbge_id" then
-					mod_id = s_bbge_id
-				end
-				if mod_id and mod_id ~= "" then
+				local mod_id = GetModId(config)
+				if mod_id then
 					entry[config.id_field] = mod_id
 					if is_host then
 						entry[config.version_field] = local_versions[config.version_field] or 0
@@ -798,16 +788,9 @@ function ResetStatus()
 	-- Get local versions for all tracked mods
 	local local_versions = {}
 	for _, config in ipairs(MOD_CHECK_CONFIG) do
-		if not config.no_version_check and config.id_field then
-			local mod_id = nil
-			if config.id_field == "bbs_id" then
-				mod_id = s_bbs_id
-			elseif config.id_field == "bbg_id" then
-				mod_id = s_bbg_id
-			elseif config.id_field == "bbge_id" then
-				mod_id = s_bbge_id
-			end
-			if mod_id and mod_id ~= "" then
+		if not config.no_version_check then
+			local mod_id = GetModId(config)
+			if mod_id then
 				local_versions[config.version_field] = GetLocalModVersion(mod_id)
 			end
 		end
@@ -822,15 +805,8 @@ function ResetStatus()
 				-- Add version fields from config table
 				for _, config in ipairs(MOD_CHECK_CONFIG) do
 					if not config.no_version_check and config.id_field then
-						local mod_id = nil
-						if config.id_field == "bbs_id" then
-							mod_id = s_bbs_id
-						elseif config.id_field == "bbg_id" then
-							mod_id = s_bbg_id
-						elseif config.id_field == "bbge_id" then
-							mod_id = s_bbge_id
-						end
-						if mod_id and mod_id ~= "" then
+						local mod_id = GetModId(config)
+						if mod_id then
 							tmp[config.id_field] = mod_id
 							tmp[config.version_field] = 0
 						end
@@ -842,15 +818,8 @@ function ResetStatus()
 				-- Add version fields from config table
 				for _, config in ipairs(MOD_CHECK_CONFIG) do
 					if not config.no_version_check and config.id_field then
-						local mod_id = nil
-						if config.id_field == "bbs_id" then
-							mod_id = s_bbs_id
-						elseif config.id_field == "bbg_id" then
-							mod_id = s_bbg_id
-						elseif config.id_field == "bbge_id" then
-							mod_id = s_bbge_id
-						end
-						if mod_id and mod_id ~= "" then
+						local mod_id = GetModId(config)
+						if mod_id then
 							tmp[config.id_field] = mod_id
 							tmp[config.version_field] = local_versions[config.version_field] or 0
 						end
@@ -863,15 +832,8 @@ function ResetStatus()
 			-- Add version fields from config table
 			for _, config in ipairs(MOD_CHECK_CONFIG) do
 				if not config.no_version_check and config.id_field then
-					local mod_id = nil
-					if config.id_field == "bbs_id" then
-						mod_id = s_bbs_id
-					elseif config.id_field == "bbg_id" then
-						mod_id = s_bbg_id
-					elseif config.id_field == "bbge_id" then
-						mod_id = s_bbge_id
-					end
-					if mod_id and mod_id ~= "" then
+					local mod_id = GetModId(config)
+					if mod_id then
 						tmp[config.id_field] = mod_id
 						tmp[config.version_field] = local_versions[config.version_field] or 0
 					end
@@ -898,15 +860,8 @@ function ResetStatus_SpecificID(playerID)
 				-- Reset version fields from config table
 				for _, config in ipairs(MOD_CHECK_CONFIG) do
 					if not config.no_version_check and config.id_field then
-						local mod_id = nil
-						if config.id_field == "bbs_id" then
-							mod_id = s_bbs_id
-						elseif config.id_field == "bbg_id" then
-							mod_id = s_bbg_id
-						elseif config.id_field == "bbge_id" then
-							mod_id = s_bbge_id
-						end
-						if mod_id and mod_id ~= "" then
+						local mod_id = GetModId(config)
+						if mod_id then
 							player[config.id_field] = mod_id
 							player[config.version_field] = 0
 						end
@@ -970,16 +925,9 @@ function RefreshStatus()
 					-- Check other mod versions using config table
 					for _, config in ipairs(MOD_CHECK_CONFIG) do
 						if not config.no_version_check and not config.is_mph and config.id_field then
-							local mod_id = nil
-							if config.id_field == "bbs_id" then
-								mod_id = s_bbs_id
-							elseif config.id_field == "bbg_id" then
-								mod_id = s_bbg_id
-							elseif config.id_field == "bbge_id" then
-								mod_id = s_bbge_id
-							end
+							local mod_id = GetModId(config)
 							
-							if mod_id and mod_id ~= "" then
+							if mod_id then
 								local flag_value = _G[config.flag]
 								if flag_value == true and player[config.version_field] then
 									local local_version = GetLocalModVersion(mod_id)
@@ -1044,28 +992,12 @@ function SendVersion()
 		table.insert(version_parts, ".mph_ui_modversion_"..tostring(g_version))
 		
 		for _, config in ipairs(MOD_CHECK_CONFIG) do
-			if not config.no_version_check and not config.is_mph and config.id_field then
-				local mod_id = nil
-				if config.id_field == "bbs_id" then
-					mod_id = s_bbs_id
-				elseif config.id_field == "bbg_id" then
-					mod_id = s_bbg_id
-				elseif config.id_field == "bbge_id" then
-					mod_id = s_bbge_id
-				end
+			if not config.no_version_check and not config.is_mph and config.id_field and config.msg_tag then
+				local mod_id = GetModId(config)
 				
-				if mod_id and mod_id ~= "" then
+				if mod_id then
 					local version = GetLocalModVersion(mod_id)
-					-- Use short tag for compatibility with existing parsing
-					local tag = ""
-					if config.id_field == "bbs_id" then
-						tag = "_BBM_"
-					elseif config.id_field == "bbg_id" then
-						tag = "_BBG_"
-					elseif config.id_field == "bbge_id" then
-						tag = "_BBGE_"
-					end
-					table.insert(version_parts, tag..tostring(version))
+					table.insert(version_parts, config.msg_tag..tostring(version))
 				end
 			end
 		end
@@ -1768,17 +1700,9 @@ function Refresh()
 			end
 			
 			if is_match then
-				-- Set the corresponding GameConfiguration value
-				if config.is_mph then
-					GameConfiguration.SetValue("MOD_MPH_ID",true)
-				elseif config.flag == "b_bbs_game" then
-					GameConfiguration.SetValue("MOD_BBS_ID",true)
-				elseif config.flag == "b_bbg_game" then
-					GameConfiguration.SetValue("MOD_BBG_ID",true)
-				elseif config.flag == "b_bbge_game" then
-					GameConfiguration.SetValue("MOD_BBGE_ID",true)
-				elseif config.flag == "b_spec_game" then
-					GameConfiguration.SetValue("MOD_BSM_ID",true)
+				-- Set the corresponding GameConfiguration value using config_key
+				if config.config_key then
+					GameConfiguration.SetValue(config.config_key, true)
 				end
 				break  -- Found matching config, no need to check others
 			end
@@ -4319,55 +4243,31 @@ function OnMultiplayerChat( fromPlayer, toPlayer, text, eTargetType )
 		local versions = {}
 		local current_pos = 20  -- Start after ".mph_ui_modversion_"
 		
-		-- Extract MPH version (first part before any tag)
+		-- Find the first tag to extract MPH version
 		local first_tag_pos = #text + 1
 		for _, config in ipairs(MOD_CHECK_CONFIG) do
-			if not config.no_version_check and not config.is_mph and config.id_field then
-				local tag = ""
-				if config.id_field == "bbs_id" then
-					tag = "_BBM_"
-				elseif config.id_field == "bbg_id" then
-					tag = "_BBG_"
-				elseif config.id_field == "bbge_id" then
-					tag = "_BBGE_"
-				end
-				local tag_start = string.find(text, tag, current_pos)
+			if not config.no_version_check and not config.is_mph and config.msg_tag then
+				local tag_start = string.find(text, config.msg_tag, current_pos, true)
 				if tag_start and tag_start < first_tag_pos then
 					first_tag_pos = tag_start
 				end
 			end
 		end
 		
+		-- MPH version is everything before the first tag
 		versions.mph_version = string.sub(text, current_pos, first_tag_pos - 1)
 		
-		-- Extract other mod versions
-		local search_pos = first_tag_pos
+		-- Extract other mod versions using config table tags
 		for _, config in ipairs(MOD_CHECK_CONFIG) do
-			if not config.no_version_check and not config.is_mph and config.id_field then
-				local tag = ""
-				if config.id_field == "bbs_id" then
-					tag = "_BBM_"
-				elseif config.id_field == "bbg_id" then
-					tag = "_BBG_"
-				elseif config.id_field == "bbge_id" then
-					tag = "_BBGE_"
-				end
-				
-				local tag_start, tag_end = string.find(text, tag, search_pos)
+			if not config.no_version_check and not config.is_mph and config.msg_tag and config.version_field then
+				local tag_start, tag_end = string.find(text, config.msg_tag, current_pos, true)
 				if tag_start then
 					-- Find the start of the next tag or end of string
 					local next_tag_start = #text + 1
 					for _, next_config in ipairs(MOD_CHECK_CONFIG) do
-						if not next_config.no_version_check and not next_config.is_mph and next_config.id_field and next_config.id_field ~= config.id_field then
-							local next_tag = ""
-							if next_config.id_field == "bbs_id" then
-								next_tag = "_BBM_"
-							elseif next_config.id_field == "bbg_id" then
-								next_tag = "_BBG_"
-							elseif next_config.id_field == "bbge_id" then
-								next_tag = "_BBGE_"
-							end
-							local next_start = string.find(text, next_tag, tag_end + 1)
+						if not next_config.no_version_check and not next_config.is_mph 
+							and next_config.msg_tag and next_config.msg_tag ~= config.msg_tag then
+							local next_start = string.find(text, next_config.msg_tag, tag_end + 1, true)
 							if next_start and next_start < next_tag_start then
 								next_tag_start = next_start
 							end
@@ -4375,7 +4275,7 @@ function OnMultiplayerChat( fromPlayer, toPlayer, text, eTargetType )
 					end
 					
 					versions[config.version_field] = string.sub(text, tag_end + 1, next_tag_start - 1)
-					search_pos = tag_end + 1
+					current_pos = tag_end + 1
 				end
 			end
 		end
@@ -7354,6 +7254,9 @@ function BuildAdditionalContent()
     m_modsIM:ResetInstances();
     local enabledMods = GameConfiguration.GetEnabledMods();
     
+    -- Reset all detected mod IDs
+    g_detected_mod_ids = {}
+    
     -- Reset all mod flags from config table
     for _, config in ipairs(MOD_CHECK_CONFIG) do
         _G[config.flag] = false
@@ -7388,16 +7291,8 @@ function BuildAdditionalContent()
                 -- Set the mod flag
                 _G[config.flag] = true
                 
-                -- Store the mod ID if id_field is specified
-                if config.id_field then
-                    if config.id_field == "bbs_id" then
-                        s_bbs_id = curMod.Id
-                    elseif config.id_field == "bbg_id" then
-                        s_bbg_id = curMod.Id
-                    elseif config.id_field == "bbge_id" then
-                        s_bbge_id = curMod.Id
-                    end
-                end
+                -- Store the detected mod ID
+                SetModId(config, curMod.Id)
                 
                 -- Get version and update display (unless no_version_check)
                 if not config.no_version_check then
