@@ -506,7 +506,6 @@
 
 			<!-- Difficulty -->
 			<PullDown ID="HandicapPullDown" Hidden="1" Offset="608,0" Anchor="L,C" Style="PullDownBlue" ScrollThreshold="400" Size="140,24" AutoSizePopUp="1"/>
-			<PullDown ID="MirrorSlotPullDown" Hidden="1" Offset="608,0" Anchor="L,C" Style="PullDownBlue" ScrollThreshold="400" Size="140,24" AutoSizePopUp="1"/>
 
 			<!-- Host Icon -->
 

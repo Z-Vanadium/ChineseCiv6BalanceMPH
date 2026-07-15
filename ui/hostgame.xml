@@ -108,7 +108,6 @@
 				<GridButton ID="LoadButton"				Anchor="L,C" Offset="0,0"	Size="250,41"	Style="MainButton" String="LOC_LOAD_GAME"/>
 				<GridButton ID="LoadConfigButton"		Anchor="L,C" Offset="0,0"	Size="250,41"	Style="MainButton" String="LOC_LOAD_CONFIG"/>
 				<GridButton ID="SaveConfigButton"		Anchor="L,C" Offset="0,0"	Size="250,41"	Style="MainButton" String="LOC_SAVE_CONFIG"/>
-				<GridButton ID="LoadPreviewConfigButton"	Anchor="L,C" Offset="0,0"	Size="250,41"	Style="MainButton" String="LOC_MIRROR_LOAD_PREVIEW_CONFIG" ToolTip="LOC_MIRROR_LOAD_PREVIEW_CONFIG_TT"/>
 				<GridButton ID="RefreshConfigButton"	Anchor="L,C" Offset="0,0"	Size="250,41"	Style="MainButton" String="LOC_MPH_GAME_REFRESH_SEED_CONFIG"/>
 				<GridButton ID="ConfirmButton"			Anchor="L,C" Offset="0,0"	Size="250,41"	Style="ButtonConfirm" String="LOC_MULTIPLAYER_CONFIRM_SETTINGS" ToolTip="LOC_MULTIPLAYER_HOST_GAME_TT"/>
 			</Stack>

@@ -30,257 +30,9 @@ local m_lobbyModeName:string = MPLobbyTypes.STANDARD_INTERNET;
 local m_shellTabIM:table = InstanceManager:new("ShellTab", "TopControl", Controls.ShellTabs);
 local m_kPopupDialog:table;
 local m_pCityStateWarningPopup:table = PopupDialog:new("CityStateWarningPopup");
-local MIRROR_PREVIEW_KEY:string = "MirrorMapDemo_LastPreview";
-local MIRROR_PREVIEW_FILE:string = "ModUserData/MirrorMapDemo_LastPreview.json";
 local m_InSession = false
 local m_Preset = -1;
 local b_visible = false;
-
-local function MatchNumberField(source:string, key:string)
-	local matched = string.match(source, '"' .. key .. '":(-?%d+)');
-	if matched ~= nil then
-		return tonumber(matched);
-	end
-	return nil;
-end
-
-local function MatchStringField(source:string, key:string)
-	return string.match(source, '"' .. key .. '":"([^"]*)"');
-end
-
-local function MatchBooleanField(source:string, key:string)
-	local matched = string.match(source, '"' .. key .. '":(true|false)');
-	if matched == "true" then
-		return true;
-	elseif matched == "false" then
-		return false;
-	end
-	return nil;
-end
-
-local function NormalizeMapScriptValue(mapScript)
-	if mapScript == nil then
-		return nil;
-	end
-
-	local normalized = tostring(mapScript);
-	normalized = string.gsub(normalized, "\\", "/");
-	local fileName = string.match(normalized, "([^/]+)$");
-	return fileName or normalized;
-end
-
-local function HasMirrorPreviewSnapshot()
-	if GameConfiguration ~= nil and GameConfiguration.GetValue ~= nil then
-		local raw = GameConfiguration.GetValue(MIRROR_PREVIEW_KEY);
-		if raw ~= nil and raw ~= "" then
-			return true;
-		end
-	end
-	if UserConfiguration ~= nil and UserConfiguration.GetValue ~= nil then
-		local raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
-		if raw ~= nil and raw ~= "" then
-			return true;
-		end
-	end
-	return false;
-end
-
-local function LoadMirrorPreviewSnapshot()
-	local raw = nil;
-	if GameConfiguration ~= nil and GameConfiguration.GetValue ~= nil then
-		raw = GameConfiguration.GetValue(MIRROR_PREVIEW_KEY);
-		if raw ~= nil and raw ~= "" then
-			print("LoadMirrorPreviewSnapshot: from GameConfiguration, len=", #raw);
-		else
-			raw = nil;
-		end
-	end
-	if raw == nil and UserConfiguration ~= nil and UserConfiguration.GetValue ~= nil then
-		raw = UserConfiguration.GetValue(MIRROR_PREVIEW_KEY);
-		if raw ~= nil and raw ~= "" then
-			print("LoadMirrorPreviewSnapshot: from UserConfiguration, len=", #raw);
-		else
-			raw = nil;
-		end
-	end
-	if raw == nil or raw == "" then
-		print("LoadMirrorPreviewSnapshot: no snapshot found");
-		return nil;
-	end
-	return {
-		MapScript = NormalizeMapScriptValue(MatchStringField(raw, "MapScript") or "Mirror.lua"),
-		MapSize = MatchNumberField(raw, "MapSize") or MapConfiguration.GetMapSize(),
-		MirrorMode = MatchNumberField(raw, "MirrorMode") or 1,
-		MirrorPlayerLayout = MatchNumberField(raw, "MirrorPlayerLayout") or 2,
-		MirrorTundraSpawnCount = MatchNumberField(raw, "MirrorTundraSpawnCount") or 0,
-		MirrorDesertSpawnCount = MatchNumberField(raw, "MirrorDesertSpawnCount") or 0,
-		MirrorFloodplainSpawnCount = MatchNumberField(raw, "MirrorFloodplainSpawnCount") or 0,
-		MirrorStrictResourceMode = MatchBooleanField(raw, "MirrorStrictResourceMode") and 1 or 0,
-		MirrorFixedSeed = MatchBooleanField(raw, "MirrorFixedSeed") and 1 or 0,
-		WorldAge = MatchNumberField(raw, "WorldAge") or 2,
-		Temperature = MatchNumberField(raw, "Temperature") or 2,
-		Rainfall = MatchNumberField(raw, "Rainfall") or 2,
-		SeaLevel = MatchNumberField(raw, "SeaLevel") or 2,
-		Resources = MatchNumberField(raw, "Resources") or 2,
-		TeamSpawn = MatchNumberField(raw, "TeamSpawn") or 1,
-		RandomSeed = MatchNumberField(raw, "RandomSeed") or -1,
-		GameSyncSeed = MatchNumberField(raw, "GameSyncSeed") or -1,
-	};
-end
-
-local function ShowMirrorPreviewPopup(message:string)
-	m_kPopupDialog:Close();
-	m_kPopupDialog:AddTitle(Locale.Lookup("LOC_MIRROR_LOAD_PREVIEW_CONFIG"));
-	m_kPopupDialog:AddText(message);
-	m_kPopupDialog:AddButton(Locale.Lookup("LOC_OK_BUTTON"), nil);
-	m_kPopupDialog:Open();
-end
-
-local function ApplyMirrorPreviewSnapshot(snapshot:table)
-	if snapshot == nil then
-		return false;
-	end
-
-	if snapshot.MapScript ~= nil and MapConfiguration.SetScript ~= nil then
-		MapConfiguration.SetScript(snapshot.MapScript);
-	end
-	if snapshot.MapSize ~= nil and MapConfiguration.SetMapSize ~= nil then
-		MapConfiguration.SetMapSize(snapshot.MapSize);
-	end
-
-	MapConfiguration.SetValue("world_age", snapshot.WorldAge);
-	MapConfiguration.SetValue("temperature", snapshot.Temperature);
-	MapConfiguration.SetValue("rainfall", snapshot.Rainfall);
-	MapConfiguration.SetValue("sea_level", snapshot.SeaLevel);
-	MapConfiguration.SetValue("resources", snapshot.Resources);
-	MapConfiguration.SetValue("BBM_Team_Spawn", snapshot.TeamSpawn);
-	MapConfiguration.SetValue("Mirror_Mode", snapshot.MirrorMode);
-	MapConfiguration.SetValue("Mirror_PlayerLayout", snapshot.MirrorPlayerLayout);
-	MapConfiguration.SetValue("Mirror_TundraSpawnCount", snapshot.MirrorTundraSpawnCount);
-	MapConfiguration.SetValue("Mirror_DesertSpawnCount", snapshot.MirrorDesertSpawnCount);
-	MapConfiguration.SetValue("Mirror_FloodplainSpawnCount", snapshot.MirrorFloodplainSpawnCount);
-	MapConfiguration.SetValue("Mirror_StrictResourceMode", snapshot.MirrorStrictResourceMode);
-	MapConfiguration.SetValue("Mirror_FixedSeed", snapshot.MirrorFixedSeed);
-	MapConfiguration.SetValue("RANDOM_SEED", snapshot.RandomSeed);
-	GameConfiguration.SetValue("GAME_SYNC_RANDOM_SEED", snapshot.GameSyncSeed);
-	return true;
-end
-
-local function UpdateMirrorPreviewButton()
-	if Controls.LoadPreviewConfigButton == nil then
-		return;
-	end
-
-	local hasSnapshot = HasMirrorPreviewSnapshot();
-	local isMirrorMap = MapConfiguration.GetValue("MAP_SCRIPT") ~= nil
-		and string.find(tostring(MapConfiguration.GetValue("MAP_SCRIPT")), "Mirror%.lua") ~= nil;
-
-	if isMirrorMap and hasSnapshot then
-		Controls.LoadPreviewConfigButton:SetHide(false);
-		Controls.LoadPreviewConfigButton:SetDisabled(false);
-	else
-		Controls.LoadPreviewConfigButton:SetHide(true);
-		Controls.LoadPreviewConfigButton:SetDisabled(true);
-	end
-
-	print("UpdateMirrorPreviewButton: isMirrorMap=", tostring(isMirrorMap), "hasSnapshot=", tostring(hasSnapshot));
-end
-
--- 在 OnShow 时自动复用预览快照（仅当 Mirror_Mode = Match 且快照存在时）。
--- 不依赖 Mirror_Mode 下拉框的 OnChange 回调（之前测试该 hook 未触发），
--- 而是利用每次进入 Host Lobby 都必然执行 OnShow 这个事实。
-local m_LastAutoAppliedJson = nil;
-
-function AutoApplyMirrorPreviewSnapshotIfMatch()
-	print("AutoApply: === START ===");
-
-	local hostID = Network.GetGameHostPlayerID();
-	local localID = Network.GetLocalPlayerID();
-	local isInSession = Network.IsInSession();
-	print("AutoApply: isInSession=", tostring(isInSession), "hostID=", tostring(hostID), "localID=", tostring(localID));
-	if isInSession and hostID ~= localID then
-		print("AutoApply: skip (not host)");
-		return;
-	end
-
-	local mapScript = MapConfiguration.GetValue("MAP_SCRIPT");
-	print("AutoApply: MAP_SCRIPT=", tostring(mapScript));
-	if mapScript == nil or string.find(tostring(mapScript), "Mirror%.lua") == nil then
-		print("AutoApply: skip (not Mirror map)");
-		return;
-	end
-
-	-- 不再检查 Mirror_Mode：只要快照存在就回填 seed + 参数。
-	-- 预览局阶段快照还没写入，HasMirrorPreviewSnapshot 会返回 false，不影响预览局。
-	local hasSnapshot = HasMirrorPreviewSnapshot();
-	print("AutoApply: HasMirrorPreviewSnapshot=", tostring(hasSnapshot));
-	if not hasSnapshot then
-		print("AutoApply: skip (no snapshot)");
-		return;
-	end
-
-	local snapshot = LoadMirrorPreviewSnapshot();
-	print("AutoApply: LoadMirrorPreviewSnapshot result=", tostring(snapshot ~= nil));
-	if snapshot == nil then
-		print("AutoApply: skip (snapshot nil)");
-		return;
-	end
-
-	print("AutoApply: snapshot RandomSeed=", tostring(snapshot.RandomSeed), "GameSyncSeed=", tostring(snapshot.GameSyncSeed));
-
-	-- 防抖：避免 OnShow / Refresh 反复触发时重复回填同一份快照
-	local fingerprint = tostring(snapshot.RandomSeed) .. "_" .. tostring(snapshot.GameSyncSeed);
-	if m_LastAutoAppliedJson == fingerprint then
-		print("AutoApply: skip (already applied seed=" .. fingerprint .. ")");
-		return;
-	end
-
-	-- 如果当前 RANDOM_SEED 已经等于快照的 seed，说明已经回填过了，跳过
-	local currentSeed = MapConfiguration.GetValue("RANDOM_SEED");
-	print("AutoApply: current RANDOM_SEED=", tostring(currentSeed), "snapshot seed=", tostring(snapshot.RandomSeed));
-	if currentSeed ~= nil and tonumber(currentSeed) == tonumber(snapshot.RandomSeed) then
-		print("AutoApply: skip (seed already matches)");
-		m_LastAutoAppliedJson = fingerprint;
-		return;
-	end
-
-	ApplyMirrorPreviewSnapshot(snapshot);
-	print("AutoApply: ApplyMirrorPreviewSnapshot done, RANDOM_SEED now=", tostring(MapConfiguration.GetValue("RANDOM_SEED")));
-
-	if Network.IsInSession() then
-		Network.BroadcastGameConfig();
-		print("AutoApply: BroadcastGameConfig sent");
-	end
-	GameSetup_RefreshParameters();
-	Refresh();
-	m_LastAutoAppliedJson = fingerprint;
-	print("AutoApply: === DONE seed=" .. fingerprint .. " ===");
-end
-
-function OnLoadPreviewConfig()
-	local hostID = Network.GetGameHostPlayerID();
-	local localID = Network.GetLocalPlayerID();
-	if Network.IsInSession() and hostID ~= localID then
-		ShowMirrorPreviewPopup(Locale.Lookup("LOC_MIRROR_LOAD_PREVIEW_HOST_ONLY"));
-		return;
-	end
-
-	local snapshot = LoadMirrorPreviewSnapshot();
-	if snapshot == nil then
-		ShowMirrorPreviewPopup(Locale.Lookup("LOC_MIRROR_LOAD_PREVIEW_MISSING"));
-		return;
-	end
-
-	ApplyMirrorPreviewSnapshot(snapshot);
-	if Network.IsInSession() then
-		Network.BroadcastGameConfig();
-	end
-	GameSetup_RefreshParameters();
-	Refresh();
-	UpdateMirrorPreviewButton();
-
-	print("OnLoadPreviewConfig(): restored preview snapshot", snapshot.MapScript, snapshot.MapSize, snapshot.RandomSeed, snapshot.GameSyncSeed);
-end
 
 
 function OnSetParameterValues(pid: string, values: table)
@@ -315,12 +67,7 @@ function OnSetParameterValue(pid: string, value: number)
             g_GameParameters:SetParameterValue(kParameter, value);
 			Network.BroadcastGameConfig();	
 		end
-	end
-	-- Mirror: 切到 Match 模式时自动复用预览快照
-	if pid == "Mirror_Mode" and value == 2 then
-		print("Mirror_Mode changed to Match, auto-applying preview snapshot");
-		OnLoadPreviewConfig();
-	end
+	end	
 end
 -- This driver is for launching a multi-select option in a separate window.
 -- ===========================================================================
@@ -688,8 +435,6 @@ function Refresh()
 		end
 	end
 	end
-	-- 每次 Refresh 也尝试回填快照（OnShow 只触发一次，Refresh 触发更频繁）
-	AutoApplyMirrorPreviewSnapshotIfMatch();
 end
 
 
@@ -706,8 +451,6 @@ function OnShow()
 	
 	ShowDefaultButton();
 	ShowLoadConfigButton();
-	UpdateMirrorPreviewButton();
-	AutoApplyMirrorPreviewSnapshotIfMatch();
 	Controls.LoadButton:SetHide(not GameConfiguration.IsHotseat() or isInSession);
 	Controls.RefreshConfigButton:SetHide(not isInSession);
 	--[[
@@ -1405,7 +1148,6 @@ function Initialize()
 	Events.LeaveGameComplete.Add( OnLeaveGameComplete );
 	Events.BeforeMultiplayerInviteProcessing.Add( OnBeforeMultiplayerInviteProcessing );
 	Events.GameConfigChanged.Add(CheckPreset);
-	Events.GameConfigChanged.Add(AutoApplyMirrorPreviewSnapshotIfMatch);
 	
 	LuaEvents.ChangeMPLobbyMode.Add( OnChangeMPLobbyMode );
 	LuaEvents.GameDebug_Return.Add(OnGameDebugReturn);
@@ -1421,7 +1163,6 @@ function Initialize()
 	LuaEvents.LeaderPicker_SetParameterValues.Add(OnSetParameterValues);																 
 	Controls.BackButton:RegisterCallback( Mouse.eLClick, OnExitGameAskAreYouSure);
 	Controls.LoadButton:RegisterCallback( Mouse.eLClick, LoadButtonClick );
-	Controls.LoadPreviewConfigButton:RegisterCallback( Mouse.eLClick, OnLoadPreviewConfig );
 
 
 	ResizeButtonToText( Controls.DefaultButton );
