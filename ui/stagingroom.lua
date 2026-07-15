@@ -104,16 +104,160 @@ local b_check = false
 local b_launch = false
 local b_clean = true
 --------------------------------------------
--- Mod Flags
+-- 模组检测配置表 (Mod Detection Configuration Table)
 --------------------------------------------
-local b_mph_game = false;
-local b_spec_game = false;
-local b_bbge_game = false;
-local b_bbg_game = false;
-local b_bbs_game = false;
-local s_bbs_id = "";
-local s_bbg_id = "";
-local s_bbge_id = "";
+-- 添加新模组只需在此表中增加一项，无需修改其他代码
+-- 系统会自动：检测模组、追踪版本、比较版本、发送版本
+--------------------------------------------
+-- 字段说明：
+-- ids              : 模组UUID列表（支持多个ID指向同一模组）
+-- flag             : 运行时布尔标志变量名，用于判断模组是否启用
+-- version_field    : 玩家状态表中的版本字段名，用于存储/比较版本号
+-- id_field         : 玩家状态表中的模组ID字段名，用于存储检测到的模组ID
+-- msg_tag          : 聊天消息中的版本分隔标签（如"_BBM_"），用于收发版本信息
+-- config_key       : GameConfiguration键名，用于在游戏配置中记录模组是否存在
+-- display_name     : 模组显示名称，用于错误消息提示
+-- color_tag        : UI颜色标签（可选，默认"[COLOR_LIGHTBLUE]"）
+-- is_mph           : 是否为MPH本体（特殊标记，MPH版本作为基准版本）
+-- no_version_check : 是否跳过版本检查（true则不比较版本号）
+--------------------------------------------
+local MOD_CHECK_CONFIG = {
+	{
+		ids = {
+			"8af4fe8e-3333-7d72-d9d6-a8f5d1b66e20",  -- 当前使用的UUID
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20",  -- 旧UUID（兼容）
+		},
+		flag = "b_mph_game",
+		version_field = "mph_version",
+		id_field = "mph_id",
+		config_key = "MOD_MPH_ID",
+		display_name = "CCB MPH",
+		color_tag = "[COLOR_LIGHTBLUE]",
+		is_mph = true,
+	},
+	{
+		ids = {"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10"},
+		flag = "b_bbs_game",
+		version_field = "bbs_v",
+		id_field = "bbs_id",
+		msg_tag = "_BBM_",
+		config_key = "MOD_BBS_ID",
+		display_name = "CCB Map",
+		color_tag = "[COLOR_LIGHTBLUE]",
+	},
+	{
+		ids = {
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00",  -- CCB Base
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05",  -- CCB BETA
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e08",  -- CCB WIP
+		},
+		flag = "b_bbg_game",
+		version_field = "bbg_v",
+		id_field = "bbg_id",
+		msg_tag = "_BBG_",
+		config_key = "MOD_BBG_ID",
+		display_name = "CCB Base",
+		color_tag = "[COLOR_LIGHTBLUE]",
+	},
+	{
+		ids = {"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30"},
+		flag = "b_bbge_game",
+		version_field = "bbge_v",
+		id_field = "bbge_id",
+		msg_tag = "_BBGE_",
+		config_key = "MOD_BBGE_ID",
+		display_name = "CCB Expansion",
+		color_tag = "[COLOR_LIGHTBLUE]",
+	},
+	{
+		ids = {
+			"3291a787-4a93-445c-998d-e22034ab15b3",
+			"c6e5ad32-0600-4a98-a7cd-5854a1abcaaf",
+		},
+		flag = "b_spec_game",
+		config_key = "MOD_BSM_ID",
+		display_name = "BSMP/BSM (Spectator)",
+		color_tag = "[COLOR_LIGHTBLUE]",
+		no_version_check = true,
+	},
+	{
+		ids = {
+			"8af4fe8e-5406-7d72-d9d6-a8f5d1b66e66",  -- 多河地图包
+		},
+		flag = "b_rivers_map_game",
+		version_field = "rivers_map_v",
+		id_field = "rivers_map_id",
+		msg_tag = "_RIVERS_MAP_",
+		config_key = "MOD_RIVERS_MAP_ID",
+		display_name = "多河地图包",
+		color_tag = "[COLOR_LIGHTBLUE]",
+	},
+	{
+		ids = {
+			"f18dbeb4-c6d4-11f0-a869-743af48c7600",  -- 5566 万神殿扩展
+		},
+		flag = "b_panth_5566_game",
+		version_field = "panth_5566_v",
+		id_field = "panth_5566_id",
+		msg_tag = "_PANTH_5566_",
+		config_key = "MOD_PANTH_5566_ID",
+		display_name = "5566 万神殿扩展",
+		color_tag = "[COLOR_LIGHTBLUE]",
+	},
+}
+
+-- 运行时状态：检测到的模组ID（由BuildAdditionalContent填充）
+-- 通过GetModId(config)访问
+local g_detected_mod_ids = {}  -- [id_field] = 检测到的模组ID
+
+-- 辅助函数：获取配置项对应的检测到的模组ID
+local function GetModId(config)
+	if config.id_field then
+		return g_detected_mod_ids[config.id_field]
+	end
+	return nil
+end
+
+-- 辅助函数：设置配置项对应的检测到的模组ID
+local function SetModId(config, id)
+	if config.id_field then
+		g_detected_mod_ids[config.id_field] = id
+	end
+end
+
+-- 运行时标志变量表（由BuildAdditionalContent设置）
+-- 通过GetModFlag(config)访问
+local g_mod_flags = {}  -- [flag_name] = true/false
+
+-- 辅助函数：获取模组标志
+local function GetModFlag(config)
+	return g_mod_flags[config.flag] or false
+end
+
+-- 辅助函数：设置模组标志
+local function SetModFlag(config, value)
+	g_mod_flags[config.flag] = value
+end
+
+-- 辅助函数：获取MPH模组配置
+local function GetMphConfig()
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		if config.is_mph then
+			return config
+		end
+	end
+	return nil
+end
+
+-- 辅助函数：检查MPH是否启用
+local function IsMphEnabled()
+	local mph_config = GetMphConfig()
+	if mph_config then
+		return GetModFlag(mph_config)
+	end
+	return false
+end
+
 local b_mods_ok = false
 
 
@@ -887,17 +1031,42 @@ function GetLocalModVersion(id)
 	
 end
 
-function RefreshStatusID(playerID,version,bbs_version,bbg_version,bbge_version)
-	print("RefreshStatusID",playerID,version,bbg_version,bbs_version,bbge_version)
-	if GameConfiguration.GetGameState() ~= -901772834 or m_countdownType =="Launch" then
+function RefreshStatusID(playerID, version, bbs_version, bbg_version, bbge_version)
+	print("RefreshStatusID", playerID, version, bbg_version, bbs_version, bbge_version)
+	if GameConfiguration.GetGameState() ~= -901772834 or m_countdownType == "Launch" then
 		return
 	end
 	local fresh_id = true
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
-	local versionBBS = GetLocalModVersion(s_bbs_id)
-	local versionBBG = GetLocalModVersion(s_bbg_id)
-	local versionBBGE = GetLocalModVersion(s_bbge_id)
+	
+	-- Get local versions for all tracked mods
+	local local_versions = {}
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		if not config.no_version_check then
+			local mod_id = GetModId(config)
+			if mod_id then
+				local_versions[config.version_field] = GetLocalModVersion(mod_id)
+			end
+		end
+	end
+	
+	-- Helper function to add version fields to a player entry
+	local function AddVersionFields(entry, is_host)
+		for _, config in ipairs(MOD_CHECK_CONFIG) do
+			if not config.no_version_check and config.id_field then
+				local mod_id = GetModId(config)
+				if mod_id then
+					entry[config.id_field] = mod_id
+					if is_host then
+						entry[config.version_field] = local_versions[config.version_field] or 0
+					else
+						entry[config.version_field] = 0
+					end
+				end
+			end
+		end
+	end
 	
 	if g_player_status ~= nil then
 		if version == nil then
@@ -906,53 +1075,20 @@ function RefreshStatusID(playerID,version,bbs_version,bbg_version,bbge_version)
 					if Network.IsPlayerConnected(playerID) then
 						player.Status = 0
 						player.Version = 0
-						if b_bbg_game == true then
-							player.bbg_id = s_bbg_id
-							player.bbg_v = 0
-						end
-						if b_bbge_game == true then
-							player.bbge_id = s_bbge_id
-							player.bbge_v = 0
-						end
-						if b_bbs_game == true then
-							player.bbs_id = s_bbs_id
-							player.bbs_v = 0
-						end
+						AddVersionFields(player, false)
 						player.Name = PlayerConfigurations[playerID]:GetPlayerName()
 						fresh_id = false
 						if player.ID == hostID then
 							player.Status = 99
 							player.Version = tostring(g_version)
-							if b_bbg_game == true then
-								player.bbg_id = s_bbg_id
-								player.bbg_v = versionBBG
-							end
-							if b_bbge_game == true then
-								player.bbge_id = s_bbge_id
-								player.bbge_v = versionBBGE
-							end
-							if b_bbs_game == true then
-								player.bbs_id = s_bbs_id
-								player.bbs_v = versionBBS
-							end
+							AddVersionFields(player, true)
 							fresh_id = false					
 						end
-						else
+					else
 						player.Status = -1
 						player.Version = 0
 						player.Name = "AI"
-						if b_bbge_game == true then
-							player.bbge_id = s_bbge_id
-							player.bbge_v = 0
-						end
-						if b_bbg_game == true then
-							player.bbg_id = s_bbg_id
-							player.bbg_v = 0
-						end
-						if b_bbs_game == true then
-							player.bbs_id = s_bbs_id
-							player.bbs_v = 0
-						end
+						AddVersionFields(player, false)
 						fresh_id = false					
 					end
 				end
@@ -963,66 +1099,40 @@ function RefreshStatusID(playerID,version,bbs_version,bbg_version,bbge_version)
 					if PlayerConfigurations[playerID] ~= nil then
 						if playerID == hostID then
 							local tmp = { ID = playerID, Status = 99, Version = g_version, Name = PlayerConfigurations[playerID]:GetPlayerName()}
-							if b_bbg_game == true then
-								tmp.bbg_id = s_bbg_id
-								tmp.bbg_v = versionBBG
-							end
-							if b_bbge_game == true then
-								tmp.bbge_id = s_bbge_id
-								tmp.bbge_v = versionBBGE
-							end
-							if b_bbs_game == true then
-								tmp.bbs_id = s_bbs_id
-								tmp.bbs_v = versionBBS
-							end
+							AddVersionFields(tmp, true)
 							table.insert(g_player_status, tmp)
-							else
+						else
 							local tmp = { ID = playerID, Status = 0, Version = 0, Name = PlayerConfigurations[playerID]:GetPlayerName()}
-							if b_bbg_game == true then
-								tmp.bbg_id = s_bbg_id
-								tmp.bbg_v = 0
-							end
-							if b_bbge_game == true then
-								tmp.bbge_id = s_bbge_id
-								tmp.bbge_v = 0
-							end
-							if b_bbs_game == true then
-								tmp.bbs_id = s_bbs_id
-								tmp.bbs_v = 0
-							end
+							AddVersionFields(tmp, false)
 							table.insert(g_player_status, tmp)
 						end
-						else
-						print("Error:",playerID,"has no valid PlayerConfigurations[playerID]",Network.IsPlayerConnected(playerID))
-					end
 					else
+						print("Error:", playerID, "has no valid PlayerConfigurations[playerID]", Network.IsPlayerConnected(playerID))
+					end
+				else
 					local tmp = { ID = playerID, Status = -1, Version = 0, Name = "AI"}
-					if b_bbg_game == true then
-						tmp.bbg_id = s_bbg_id
-						tmp.bbg_v = 0
-					end
-					if b_bbge_game == true then
-						tmp.bbge_id = s_bbge_id
-						tmp.bbge_v = 0
-					end
-					if b_bbs_game == true then
-						tmp.bbs_id = s_bbs_id
-						tmp.bbs_v = 0
-					end
+					AddVersionFields(tmp, false)
 					table.insert(g_player_status, tmp)
 				end
 			end
 			
-			else -- we are receiving a version number
+		else -- we are receiving a version number
 			
 			for i, player in ipairs(g_player_status) do 
 				if player.ID == playerID then
 					if Network.IsPlayerConnected(playerID) then
 						player.Status = 2
-						player.Version = tostring(version)	
-						player.bbg_v = tostring(bbg_version)
-						player.bbge_v = tostring(bbge_version)	
-						player.bbs_v = tostring(bbs_version)	
+						player.Version = tostring(version)
+						-- Update version fields from parsed message
+						if bbs_version then
+							player.bbs_v = tostring(bbs_version)
+						end
+						if bbg_version then
+							player.bbg_v = tostring(bbg_version)
+						end
+						if bbge_version then
+							player.bbge_v = tostring(bbge_version)
+						end
 						player.Name = PlayerConfigurations[playerID]:GetPlayerName()
 					end
 				end
@@ -1038,58 +1148,61 @@ function ResetStatus()
 	end
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
-	local versionBBS = GetLocalModVersion(s_bbs_id)
-	local versionBBG = GetLocalModVersion(s_bbg_id)
-	local versionBBGE = GetLocalModVersion(s_bbge_id)
+	
+	-- Get local versions for all tracked mods
+	local local_versions = {}
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		if not config.no_version_check then
+			local mod_id = GetModId(config)
+			if mod_id then
+				local_versions[config.version_field] = GetLocalModVersion(mod_id)
+			end
+		end
+	end
+	
 	g_player_status = {}
 	local player_ids = GameConfiguration.GetMultiplayerPlayerIDs();
 	for i, iPlayer in ipairs(player_ids) do
 		if Network.IsPlayerConnected(iPlayer) then
 			if iPlayer ~= hostID then
 				local tmp = { ID = iPlayer, Status = 0, Version = 0, Name = PlayerConfigurations[iPlayer]:GetPlayerName()}
-				if b_bbg_game == true then
-					tmp.bbg_id = s_bbg_id
-					tmp.bbg_v = 0
-				end
-				if b_bbge_game == true then
-					tmp.bbge_id = s_bbge_id
-					tmp.bbge_v = 0
-				end
-				if b_bbs_game == true then
-					tmp.bbs_id = s_bbs_id
-					tmp.bbs_v = 0
+				-- Add version fields from config table
+				for _, config in ipairs(MOD_CHECK_CONFIG) do
+					if not config.no_version_check and config.id_field then
+						local mod_id = GetModId(config)
+						if mod_id then
+							tmp[config.id_field] = mod_id
+							tmp[config.version_field] = 0
+						end
+					end
 				end
 				table.insert(g_player_status, tmp)
-				else
+			else
 				local tmp = { ID = iPlayer, Status = 99, Version = g_version, Name = PlayerConfigurations[iPlayer]:GetPlayerName()}
-				if b_bbg_game == true then
-					tmp.bbg_id = s_bbg_id
-					tmp.bbg_v = versionBBG
-				end
-				if b_bbge_game == true then
-					tmp.bbge_id = s_bbge_id
-					tmp.bbge_v = versionBBGE
-				end
-				if b_bbs_game == true then
-					tmp.bbs_id = s_bbs_id
-					tmp.bbs_v = versionBBS
+				-- Add version fields from config table
+				for _, config in ipairs(MOD_CHECK_CONFIG) do
+					if not config.no_version_check and config.id_field then
+						local mod_id = GetModId(config)
+						if mod_id then
+							tmp[config.id_field] = mod_id
+							tmp[config.version_field] = local_versions[config.version_field] or 0
+						end
+					end
 				end
 				table.insert(g_player_status, tmp)					
 			end
-			else
+		else
 			local tmp = { ID = iPlayer, Status = -1, Version = g_version, Name = "AI"}
-				if b_bbg_game == true then
-					tmp.bbg_id = s_bbg_id
-					tmp.bbg_v = versionBBG
+			-- Add version fields from config table
+			for _, config in ipairs(MOD_CHECK_CONFIG) do
+				if not config.no_version_check and config.id_field then
+					local mod_id = GetModId(config)
+					if mod_id then
+						tmp[config.id_field] = mod_id
+						tmp[config.version_field] = local_versions[config.version_field] or 0
+					end
 				end
-				if b_bbge_game == true then
-					tmp.bbge_id = s_bbge_id
-					tmp.bbge_v = versionBBGE
-				end
-				if b_bbs_game == true then
-					tmp.bbs_id = s_bbs_id
-					tmp.bbs_v = versionBBS
-				end
+			end
 			table.insert(g_player_status, tmp)				
 		end
 		
@@ -1108,17 +1221,15 @@ function ResetStatus_SpecificID(playerID)
 			if player.ID == playerID then
 				player.Status = 0
 				player.Version = 0
-				if b_bbg_game == true then
-					player.bbg_id = s_bbg_id
-					player.bbg_v = 0
-				end
-				if b_bbge_game == true then
-					player.bbge_id = s_bbge_id
-					player.bbge_v = 0
-				end
-				if b_bbs_game == true then
-					player.bbs_id = s_bbs_id
-					player.bbs_v = 0
+				-- Reset version fields from config table
+				for _, config in ipairs(MOD_CHECK_CONFIG) do
+					if not config.no_version_check and config.id_field then
+						local mod_id = GetModId(config)
+						if mod_id then
+							player[config.id_field] = mod_id
+							player[config.version_field] = 0
+						end
+					end
 				end
 			end
 		end
@@ -1144,14 +1255,15 @@ end
 
 function RefreshStatus()
 	print("RefreshStatus()",os.date("%c"),b_tick)
-	if GameConfiguration.GetGameState() ~= -901772834 or b_mph_game == false or m_countdownType =="Launch" or b_tick == true then
+	if GameConfiguration.GetGameState() ~= -901772834 or IsMphEnabled() == false or m_countdownType =="Launch" or b_tick == true then
 		return
 	end
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
 	b_tick = true
 	b_mods_ok = true
-	if hostID == localID and b_mph_game == true then
+	
+	if hostID == localID and IsMphEnabled() == true then
 		if g_player_status ~= nil and g_player_status ~= {} then
 			for i, player in pairs(g_player_status) do
 				if Network.IsPlayerConnected(player.ID) == false and player.Status ~= -1 then
@@ -1168,36 +1280,64 @@ function RefreshStatus()
 					b_mods_ok = false
 				end
 				if player.Status == 2 then
-					-- We haven't received an answer most likely hasn't a fully loaded MPH
-						if tostring(player.Version) ~= tostring(g_version) then
-							local msg_CCBError_MPH_Version = "[COLOR_Civ6Red]主机CCB助手版本: "..tostring(g_version).." Your version: "..tostring(player.Version)
-							Network.SendChat( msg_CCBError_MPH_Version ,-2,player.ID)
-							player.Status = 66
+					-- Debug: 打印接收到的版本信息
+					print("=== MOD CHECK DEBUG: RefreshStatus - Player " .. player.ID .. " ===")
+					print("Player Name: " .. tostring(player.Name))
+					print("Received Versions:")
+					print("  MPH: " .. tostring(player.Version))
+					for _, config in ipairs(MOD_CHECK_CONFIG) do
+						if not config.no_version_check and not config.is_mph and config.version_field then
+							print(string.format("  %s: %s", config.display_name, tostring(player[config.version_field] or "nil")))
 						end
-						if b_bbs_game == true and tostring(player.bbs_v) ~= tostring(GetLocalModVersion(s_bbs_id)) then
-							local msg_CCBError_BBM = "[COLOR_Civ6Red]主机CCB地图版本: "..tostring(GetLocalModVersion(s_bbs_id)).." 你的版本: "..tostring(player.bbs_v)
-							Network.SendChat( msg_CCBError_BBM , -2, player.ID)
-							player.Status = 66
+					end
+					print("Local Versions:")
+					print("  MPH: " .. tostring(g_version))
+					for _, config in ipairs(MOD_CHECK_CONFIG) do
+						if not config.no_version_check and not config.is_mph then
+							local mod_id = GetModId(config)
+							if mod_id then
+								local local_version = GetLocalModVersion(mod_id)
+								print(string.format("  %s: %s", config.display_name, tostring(local_version or "nil")))
+							end
 						end
-						if b_bbg_game == true and tostring(player.bbg_v) ~= tostring(GetLocalModVersion(s_bbg_id)) then
-							local msg_CCBError_BBG = "[COLOR_Civ6Red]主机CCB版本: "..tostring(GetLocalModVersion(s_bbg_id)).." 你的版本: "..tostring(player.bbg_v)
-							Network.SendChat( msg_CCBError_BBG , -2, player.ID)
-							player.Status = 66
+					end
+					print("=== END MOD CHECK DEBUG ===")
+					
+					-- Check MPH version first (special case)
+					if tostring(player.Version) ~= tostring(g_version) then
+						local msg_CCBError_MPH_Version = "[COLOR_Civ6Red]主机CCB助手版本: "..tostring(g_version).." Your version: "..tostring(player.Version)
+						Network.SendChat( msg_CCBError_MPH_Version ,-2,player.ID)
+						player.Status = 66
+					end
+					
+					-- Check other mod versions using config table
+					for _, config in ipairs(MOD_CHECK_CONFIG) do
+						if not config.no_version_check and not config.is_mph and config.id_field then
+							local mod_id = GetModId(config)
+							
+							if mod_id then
+								local flag_value = GetModFlag(config)
+								if flag_value == true and player[config.version_field] then
+									local local_version = GetLocalModVersion(mod_id)
+									if tostring(player[config.version_field]) ~= tostring(local_version) then
+										local msg_CCBError = "[COLOR_Civ6Red]主机"..config.display_name.."版本: "..tostring(local_version).." 你的版本: "..tostring(player[config.version_field])
+										Network.SendChat( msg_CCBError , -2, player.ID)
+										player.Status = 66
+									end
+								end
+							end
 						end
-						if b_bbge_game == true and tostring(player.bbge_v) ~= tostring(GetLocalModVersion(s_bbge_id)) then
-							local msg_CCBError_BBGE = "[COLOR_Civ6Red]主机CCB拓展版本: "..tostring(GetLocalModVersion(s_bbge_id)).." 你的版本: "..tostring(player.bbge_v)
-							Network.SendChat( msg_CCBError_BBGE , -2, player.ID)
-							player.Status = 66
-						end
-						if player.Status == 66 then
-							local msg_CCB_Version_Mismatch = "[COLOR_Civ6Red]错误:"..player.Name.." - 版本不匹配."
-							Network.SendChat( msg_CCB_Version_Mismatch ,-2,player.ID)
-							b_mods_ok = false
-							else
-							local msg_CCB_Version_Match = "[COLOR_Civ6Green]"..player.Name.." - 版本匹配 ."
-							player.Status = 3
-							Network.SendChat( msg_CCB_Version_Match ,-2,player.ID)
-						end
+					end
+					
+					if player.Status == 66 then
+						local msg_CCB_Version_Mismatch = "[COLOR_Civ6Red]错误:"..player.Name.." - 版本不匹配."
+						Network.SendChat( msg_CCB_Version_Mismatch ,-2,player.ID)
+						b_mods_ok = false
+					else
+						local msg_CCB_Version_Match = "[COLOR_Civ6Green]"..player.Name.." - 版本匹配 ."
+						player.Status = 3
+						Network.SendChat( msg_CCB_Version_Match ,-2,player.ID)
+					end
 				end				
 				if player.Status == 0 then
 					print("RefreshStatus() - Host Querrying - ID:",player.ID)
@@ -1214,7 +1354,7 @@ function RefreshStatus()
 					UpdatePlayerEntry(player.ID)
 				end
 			end	
-			else
+		else
 			ResetStatus()
 			b_mods_ok = false
 			return
@@ -1226,6 +1366,24 @@ function OnModCheck()
 	print("OnModCheck()",os.date("%c"))
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
+	
+	-- Debug: 打印当前modcheck状态
+	print("=== MOD CHECK DEBUG: OnModCheck ===")
+	print("Local Player ID: " .. tostring(localID))
+	print("Host Player ID: " .. tostring(hostID))
+	print("Is Host: " .. tostring(localID == hostID))
+	print("IsMphEnabled: " .. tostring(IsMphEnabled()))
+	print("Detected Mod IDs:")
+	for field, id in pairs(g_detected_mod_ids) do
+		local version = GetLocalModVersion(id)
+		print(string.format("  %s = %s (version: %s)", field, tostring(id), tostring(version or "nil")))
+	end
+	print("Mod Flags:")
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		print(string.format("  %s = %s", config.flag, tostring(GetModFlag(config))))
+	end
+	print("=== END MOD CHECK DEBUG ===")
+	
 	b_mods_ok = false
 	g_player_status = {}
 	ResetStatus()
@@ -1234,11 +1392,44 @@ end
 function SendVersion()
 	local localID = Network.GetLocalPlayerID()
 	local hostID = Network.GetGameHostPlayerID()
-	if localID ~= hostID and b_mph_game == true then
-		local bbs_version = GetLocalModVersion(s_bbs_id)
-		local bbg_version = GetLocalModVersion(s_bbg_id)
-		local bbge_version = GetLocalModVersion(s_bbge_id)
-		Network.SendChat(".mph_ui_modversion_"..tostring(g_version).."_BBM_"..tostring(bbs_version).."_BBG_"..tostring(bbg_version).."_BBGE_"..tostring(bbge_version),-2,hostID)
+	if localID ~= hostID and IsMphEnabled() == true then
+		-- Build version message dynamically from config table
+		local version_parts = {}
+		table.insert(version_parts, ".mph_ui_modversion_"..tostring(g_version))
+		
+		for _, config in ipairs(MOD_CHECK_CONFIG) do
+			if not config.no_version_check and not config.is_mph and config.id_field and config.msg_tag then
+				local mod_id = GetModId(config)
+				
+				if mod_id then
+					local version = GetLocalModVersion(mod_id)
+					table.insert(version_parts, config.msg_tag..tostring(version))
+				end
+			end
+		end
+		
+		local msg = table.concat(version_parts)
+		
+		-- Debug: 打印发送的版本信息
+		print("=== MOD CHECK DEBUG: SendVersion ===")
+		print("Sending to host: " .. tostring(hostID))
+		print("Message: " .. msg)
+		print("Versions:")
+		print("  MPH: " .. tostring(g_version))
+		for _, config in ipairs(MOD_CHECK_CONFIG) do
+			if not config.no_version_check and not config.is_mph then
+				local mod_id = GetModId(config)
+				if mod_id then
+					local version = GetLocalModVersion(mod_id)
+					print(string.format("  %s: %s (mod_id: %s)", config.display_name, tostring(version or "nil"), tostring(mod_id)))
+				else
+					print(string.format("  %s: NOT DETECTED", config.display_name))
+				end
+			end
+		end
+		print("=== END MOD CHECK DEBUG ===")
+		
+		Network.SendChat(msg, -2, hostID)
 	end
 end
 
@@ -1916,30 +2107,34 @@ function Refresh()
 	if string.len(g_refreshing) > 30 then
 		g_refreshing = "Refreshing"
 	end	
-	GameConfiguration.SetValue("MOD_BSM_ID",false)
-	GameConfiguration.SetValue("MOD_BBS_ID",false)
-	GameConfiguration.SetValue("MOD_BBG_ID",false)
-	GameConfiguration.SetValue("MOD_BBGE_ID",false)
-	GameConfiguration.SetValue("MOD_MPH_ID",false)
+	-- Reset all mod configuration values using config table
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		if config.config_key then
+			GameConfiguration.SetValue(config.config_key, false)
+		end
+	end
+	
 	local enabledMods = GameConfiguration.GetEnabledMods();
 	for _, curMod in ipairs(enabledMods) do
-		-- Color unofficial mods to call them out.
-		if curMod.Id == "3291a787-4a93-445c-998d-e22034ab15b3" or curMod.Id == "c6e5ad32-0600-4a98-a7cd-5854a1abcaaf" then
-			GameConfiguration.SetValue("MOD_BSM_ID",true)
-		end			
-		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10" then
-			GameConfiguration.SetValue("MOD_BBS_ID",true)
-		end		
-		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05" or curMod.Id == "cb84074d-5007-4207-b662-c35a5f7be230" then
-			GameConfiguration.SetValue("MOD_BBG_ID",true)
-		end				
-		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20" then
-			GameConfiguration.SetValue("MOD_MPH_ID",true)
+		-- Check mod against configuration table
+		for _, config in ipairs(MOD_CHECK_CONFIG) do
+			local is_match = false
+			for _, id in ipairs(config.ids) do
+				if curMod.Id == id then
+					is_match = true
+					break
+				end
+			end
+			
+			if is_match then
+				-- Set the corresponding GameConfiguration value using config_key
+				if config.config_key then
+					GameConfiguration.SetValue(config.config_key, true)
+				end
+				break  -- Found matching config, no need to check others
+			end
 		end
-		if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" then
-			GameConfiguration.SetValue("MOD_BBGE_ID",true)
-		end															 	 
-	end	
+	end
 	
 	-- Define Settings
 	g_slot_draft = 0
@@ -4471,15 +4666,49 @@ function OnMultiplayerChat( fromPlayer, toPlayer, text, eTargetType )
 	end
 	
 	if string.sub(text,1,18) == ".mph_ui_modversion"  then --and toPlayer == Network.GetGameHostPlayerID()
-		local indexBBSs, indexBBSe = string.find(text,"_BBM_")
-		local indexBBGs, indexBBGe = string.find(text,"_BBG_")
-		local indexBBGEs, indexBBGEe = string.find(text,"_BBGE_")
-		local mph_version = string.sub(text,20,indexBBSs-1)
-		local bbs_version = string.sub(text,indexBBSe+1,indexBBGs-1)
-		local bbg_version = string.sub(text, indexBBGe+1,indexBBGEs-1)
-		local bbge_version = string.sub(text,indexBBGEe+1)
-		RefreshStatusID(fromPlayer,mph_version,bbs_version,bbg_version,bbge_version)
-
+		-- Parse version message dynamically using config table
+		local versions = {}
+		local current_pos = 20  -- Start after ".mph_ui_modversion_"
+		
+		-- Find the first tag to extract MPH version
+		local first_tag_pos = #text + 1
+		for _, config in ipairs(MOD_CHECK_CONFIG) do
+			if not config.no_version_check and not config.is_mph and config.msg_tag then
+				local tag_start = string.find(text, config.msg_tag, current_pos, true)
+				if tag_start and tag_start < first_tag_pos then
+					first_tag_pos = tag_start
+				end
+			end
+		end
+		
+		-- MPH version is everything before the first tag
+		versions.mph_version = string.sub(text, current_pos, first_tag_pos - 1)
+		
+		-- Extract other mod versions using config table tags
+		for _, config in ipairs(MOD_CHECK_CONFIG) do
+			if not config.no_version_check and not config.is_mph and config.msg_tag and config.version_field then
+				local tag_start, tag_end = string.find(text, config.msg_tag, current_pos, true)
+				if tag_start then
+					-- Find the start of the next tag or end of string
+					local next_tag_start = #text + 1
+					for _, next_config in ipairs(MOD_CHECK_CONFIG) do
+						if not next_config.no_version_check and not next_config.is_mph 
+							and next_config.msg_tag and next_config.msg_tag ~= config.msg_tag then
+							local next_start = string.find(text, next_config.msg_tag, tag_end + 1, true)
+							if next_start and next_start < next_tag_start then
+								next_tag_start = next_start
+							end
+						end
+					end
+					
+					versions[config.version_field] = string.sub(text, tag_end + 1, next_tag_start - 1)
+					current_pos = tag_end + 1
+				end
+			end
+		end
+		
+		-- Call RefreshStatusID with parsed versions (maintain backward compatibility)
+		RefreshStatusID(fromPlayer, versions.mph_version, versions.bbs_v, versions.bbg_v, versions.bbge_v)
 	end
 	
 	if string.sub(text,1,30) == "[COLOR_Civ6Green]# Running MPH" and toPlayer == Network.GetGameHostPlayerID() and bversion_display == true then
@@ -7450,9 +7679,14 @@ end
 function BuildAdditionalContent()
     m_modsIM:ResetInstances();
     local enabledMods = GameConfiguration.GetEnabledMods();
-    b_mph_game = false
-    b_spec_game = false
-	b_bbge_game = false
+    
+    -- Reset all detected mod IDs
+    g_detected_mod_ids = {}
+    
+    -- Reset all mod flags from config table
+    for _, config in ipairs(MOD_CHECK_CONFIG) do
+        SetModFlag(config, false)
+    end
     isCivPlayerName = false
     local count = 0
     
@@ -7468,62 +7702,78 @@ function BuildAdditionalContent()
             isCivPlayerName = true
             modTitleStr = "[COLOR_RED]".. modTitleStr .. "[ENDCOLOR]";
         end
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20" then --MPH now CCBMPH 1.0 on
-            local version = GetLocalModVersion(curMod.Id)
-			g_mod_version["ccb_mph_version"] = version or "unknown"
-            if version then
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
-            else
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: unknown)";
+        
+        -- Check mod against configuration table
+        for _, config in ipairs(MOD_CHECK_CONFIG) do
+            local is_match = false
+            for _, id in ipairs(config.ids) do
+                if curMod.Id == id then
+                    is_match = true
+                    break
+                end
             end
-            b_mph_game = true
-        end
-        if curMod.Id == "3291a787-4a93-445c-998d-e22034ab15b3" or curMod.Id == "c6e5ad32-0600-4a98-a7cd-5854a1abcaaf" then --BSMP BSM 不需要改变
-            modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR]";
-            b_spec_game = true
-        end
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e10" then --BBM now CCBmap 1.0 on
-            local version = GetLocalModVersion(curMod.Id)
-			g_mod_version["ccb_map_version"] = version or "unknown"
-            if version then
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
-            else
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: unknown)";
+            
+            if is_match then
+                -- Set the mod flag
+                SetModFlag(config, true)
+                
+                -- Store the detected mod ID
+                SetModId(config, curMod.Id)
+                
+                -- Get version and update display (unless no_version_check)
+                if not config.no_version_check then
+                    local version = GetLocalModVersion(curMod.Id)
+                    
+                    -- Store version in g_mod_version for compatibility
+                    if config.is_mph then
+                        g_mod_version["ccb_mph_version"] = version or "unknown"
+                    elseif config.flag == "b_bbs_game" then
+                        g_mod_version["ccb_map_version"] = version or "unknown"
+                    elseif config.flag == "b_bbg_game" then
+                        g_mod_version["ccb_version"] = version or "unknown"
+                    elseif config.flag == "b_bbge_game" then
+                        g_mod_version["ccb_exp_version"] = version or "unknown"
+                    end
+                    
+                    if version then
+                        modTitleStr = config.color_tag .. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
+                    else
+                        modTitleStr = config.color_tag .. modTitleStr .. "[ENDCOLOR] (local: unknown)";
+                    end
+                else
+                    -- For mods without version check, just apply color
+                    modTitleStr = config.color_tag .. modTitleStr .. "[ENDCOLOR]";
+                end
+                
+                break  -- Found matching config, no need to check others
             end
-            b_bbs_game = true
-            s_bbs_id = curMod.Id
         end
         
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e00"  --BBG now CCB Base on
-            or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e05" --BBG now CCB BETA
-            or curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e08" then --BBG low version? now CCB WIP
-            local version = GetLocalModVersion(curMod.Id)
-			g_mod_version["ccb_version"] = version or "unknown"
-            if version then
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
-            else
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: unknown)";
-            end
-            b_bbg_game = true
-            s_bbg_id = curMod.Id
-        end
-        if curMod.Id == "8af4fe8e-5406-7d72-d9d6-a8f5d1b66e30" then --CCBE 1.0 on
-            local version = GetLocalModVersion(curMod.Id)
-			g_mod_version["ccb_exp_version"] = version or "unknown"
-            if version then
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: ".. version ..")";
-            else
-                modTitleStr = "[COLOR_LIGHTBLUE]".. modTitleStr .. "[ENDCOLOR] (local: unknown)";
-            end
-            b_bbge_game = true
-            s_bbge_id = curMod.Id
-        end
         if(not curMod.Official) then
             modTitleStr = ColorString_ModGreen .. modTitleStr .. "[ENDCOLOR]";
         end
         
         modControl.ModTitle:SetText(modTitleStr);
     end
+
+    -- Debug: 打印所有检测到的模组信息
+    print("=== MOD CHECK DEBUG: BuildAdditionalContent ===")
+    print("Total enabled mods: " .. count)
+    for _, config in ipairs(MOD_CHECK_CONFIG) do
+        local flag_value = GetModFlag(config)
+        local mod_id = GetModId(config)
+        local version = nil
+        if mod_id then
+            version = GetLocalModVersion(mod_id)
+        end
+        print(string.format("  [%s] %s: flag=%s, id=%s, version=%s", 
+            config.display_name,
+            flag_value and "ENABLED" or "disabled",
+            tostring(flag_value),
+            tostring(mod_id or "nil"),
+            tostring(version or "nil")))
+    end
+    print("=== END MOD CHECK DEBUG ===")
 
     Controls.AdditionalContentStack:CalculateSize();
     Controls.ParametersScrollPanel:CalculateSize();
@@ -7869,7 +8119,13 @@ function Initialize()
 
 	Controls.TitleLabel:SetText(Locale.ToUpper(Locale.Lookup("LOC_MULTIPLAYER_STAGING_ROOM")));
 	
-	g_version = GetLocalModVersion("8af4fe8e-5406-7d72-d9d6-a8f5d1b66e20")
+	-- Get MPH version from config table
+	for _, config in ipairs(MOD_CHECK_CONFIG) do
+		if config.is_mph then
+			g_version = GetLocalModVersion(config.ids[1])
+			break
+		end
+	end
 		
 	ResizeButtonToText(Controls.BackButton);
 	ResizeButtonToText(Controls.EndGameButton);

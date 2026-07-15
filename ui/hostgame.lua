@@ -1138,6 +1138,15 @@ function CCB_Natural_Wonders()
 	GameConfiguration.SetValue("EXCLUDE_NATURAL_WONDERS",default)
 end
 
+function CCB_CNL_Natural_Wonders()
+	local default = {}
+	default = {
+		'FEATURE_BERMUDA_TRIANGLE',
+		'FEATURE_NAMIB'
+	}
+	GameConfiguration.SetValue("EXCLUDE_NATURAL_WONDERS",default)
+end
+
 function CWC_Natural_Wonders()
 	local default = {}
 	default = {
@@ -1281,6 +1290,16 @@ function CheckPreset()
 		if currentPreset == 12 then
 			print("Applied CCB STD Settings")
 			CCB_Natural_Wonders()
+		end
+		-- CCB CNL
+		if currentPreset == 14 then
+			print("Applied CCB CNL Settings")
+			CCB_CNL_Natural_Wonders()
+		end
+		-- CCB CNL Junior
+		if currentPreset == 15 then
+			print("Applied CCB CNL Junior Settings")
+			CCB_CNL_Natural_Wonders()
 		end
 		-- CWC
 		if currentPreset == 1 then

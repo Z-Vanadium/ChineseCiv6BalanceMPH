@@ -22,4 +22,9 @@
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="9" TargetGroup="Map" TargetId="BBSRidge" TargetValue="0" Hash="0" />
 		<!--2vi2 Defaulting-->
 		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="10" TargetGroup="Map" TargetId="BBSRidge" TargetValue="1" Hash="0" />
+		<!-- CCB CNL Defaulting-->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="14" TargetGroup="Map" TargetId="BBSRidge" TargetValue="1" Hash="0" />
+		<!-- CCB CNL Junior Defaulting-->
+		<Row SourceGroup="Game" SourceId="MPH_PRESET" SourceValue="15" TargetGroup="Map" TargetId="BBSRidge" TargetValue="1" Hash="0" />
+	</ConfigurationUpdates>
 </GameInfo>
